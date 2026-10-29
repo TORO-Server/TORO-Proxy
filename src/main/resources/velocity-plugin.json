@@ -1,0 +1,8 @@
+{
+  "id": "toro-proxy",
+  "name": "TORO-Proxy",
+  "version": "${version}",
+  "description": "toro-main の再起動中はプレイヤーを limbo で待たせ、起動したら自動で戻す",
+  "authors": ["Marumasa"],
+  "main": "net.torosaba.proxy.TOROProxy"
+}

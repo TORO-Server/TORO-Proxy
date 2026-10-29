@@ -1,0 +1,36 @@
+services:
+  toro-velocity:
+    image: ghcr.io/malken21/docker-minecraft-velocity:latest
+    container_name: toro-velocity
+    user: "1000:1001"
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+      - "19132:19132/udp"
+    volumes:
+      - "./velocity:/app"
+    environment:
+      - TZ=Asia/Tokyo
+      - LANG=ja_JP.UTF-8
+      - LANGUAGE=ja_JP:ja
+      - LC_ALL=ja_JP.UTF-8
+    stop_grace_period: 1m
+    networks:
+      - minecraft-network
+
+  # toro-main の再起動中にプレイヤーが待つ limbo (PicoLimbo)。ポートは公開せず、Velocity からだけ繋ぐ
+  toro-limbo:
+    image: ghcr.io/quozul/picolimbo:v1.15.0-mc26.3
+    container_name: toro-limbo
+    user: "1000:1001"
+    restart: unless-stopped
+    env_file:
+      - ./limbo.env
+    volumes:
+      - "./limbo/server.toml:/usr/src/app/server.toml:ro"
+    mem_limit: 128m
+    networks:
+      - minecraft-network
+networks:
+  minecraft-network:
+    external: true

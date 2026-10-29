@@ -1,0 +1,28 @@
+# PicoLimbo (toro-limbo)。toro-main の再起動中にプレイヤーが待つ場所。Velocity からしか繋がらない
+bind = "0.0.0.0:25565"
+welcome_message = ""
+action_bar = "<yellow>サーバーを再起動しています。起動したら自動で戻ります。</yellow>"
+default_game_mode = "spectator"
+fetch_player_skins = false
+
+[forwarding]
+method = "BUNGEE_GUARD"
+# Velocity の forwarding.secret と同じ値。limbo.env から渡す
+tokens = ["${FORWARDING_SECRET}"]
+
+[world]
+dimension = "overworld"
+spawn_position = [0.5, 100.0, 0.5]
+time = "day"
+
+[title]
+enabled = true
+title = "<yellow>再起動中</yellow>"
+subtitle = "起動したら自動で戻ります"
+fade_in = 10
+stay = 100
+fade_out = 20
+
+[server_list]
+reply_to_status = true
+message_of_the_day = "TORO limbo"
