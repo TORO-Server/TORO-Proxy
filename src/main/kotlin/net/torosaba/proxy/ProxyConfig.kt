@@ -18,6 +18,9 @@ data class ProxyConfig(
     val pingTimeoutSeconds: Long,
     val movedMessage: String,
     val returningMessage: String,
+    val clientsEndpoint: String,
+    val clientsToken: String,
+    val clientsIntervalSeconds: Long,
 ) {
     fun moved(): Component = Component.text(movedMessage, NamedTextColor.YELLOW)
     fun returning(): Component = Component.text(returningMessage, NamedTextColor.GREEN)
@@ -42,6 +45,12 @@ max-return-failures=3
 ping-timeout-seconds=3
 message-moved=サーバーを再起動しています。起動したら自動で戻ります。
 message-returning=サーバーが起動しました。戻ります。
+# いまつながっているプレイヤーの IP を知らせる先 (assets.torosaba.net が MarumaSign の Mod の読み込みかを確かめるのに使う)。空なら知らせない
+clients-endpoint=http://toro-map-web:3000/live/clients
+# 知らせる先の合言葉 (toro-map-web の NUXT_CLIENTS_TOKEN と同じもの)。空なら知らせない
+clients-token=
+# 知らせる間隔 (秒)。人の出入りがあったときは、すぐ知らせる
+clients-interval-seconds=30
 """
 
         fun load(dir: Path): ProxyConfig {
@@ -70,6 +79,9 @@ message-returning=サーバーが起動しました。戻ります。
                 pingTimeoutSeconds = long("ping-timeout-seconds", 1),
                 movedMessage = str("message-moved"),
                 returningMessage = str("message-returning"),
+                clientsEndpoint = str("clients-endpoint"),
+                clientsToken = str("clients-token"),
+                clientsIntervalSeconds = long("clients-interval-seconds", 5),
             )
         }
     }

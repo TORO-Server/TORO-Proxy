@@ -23,6 +23,12 @@ class TOROProxy @Inject constructor(
         val config = ProxyConfig.load(dataDir)
         // サーバー側のスクリプトが「誰もいないときに再起動する」判断に使う。統合版 (Geyser) の人は TCP の接続数に出ないため
         proxy.scheduler.buildTask(this, Runnable { writeOnline() }).repeat(10, TimeUnit.SECONDS).schedule()
+        if (config.clientsEndpoint.isNotEmpty() && config.clientsToken.isNotEmpty()) {
+            val reporter = ClientReporter(proxy, logger, config, this)
+            proxy.eventManager.register(this, reporter)
+            reporter.start()
+            logger.info("いまつながっているプレイヤーの IP を {} に知らせます", config.clientsEndpoint)
+        }
         val missing = (config.mainServers + config.limboServer).filter { proxy.getServer(it).isEmpty }
         if (missing.isNotEmpty()) {
             logger.warn("velocity.toml に無いサーバーがあります: {}。limbo での待機は動きません", missing)
