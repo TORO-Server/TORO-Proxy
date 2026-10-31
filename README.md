@@ -43,13 +43,26 @@ gradle shadowJar
 	"minuma.torosaba.net" = ["toro", "limbo"]
 ```
 
+## イメージ (GHCR、非公開)
+
+GitHub Actions が、試験に通った JAR を `ghcr.io/toro-server/toro-proxy` に置きます。中身は `/TORO-Proxy.jar` だけで、動かすものではありません。
+タグは、`latest` (main の先頭)、`sha-<短い ID>`、リリース (`v1.2.3` のタグを打つと `1.2.3` と `1.2`) です。
+
+サーバーの `update_velocity.sh` が、`PROXY_TAG` の版を取り出して `velocity/plugins/TORO-Proxy.jar` に入れます (ほかのプラグインと同じく、誰もいなくなってから)。上げるときは、タグを打って CI が終わってから、`PROXY_TAG` を書き換えます。
+
+イメージは非公開なので、`update_velocity.sh` を動かすユーザー (prod-host の cron) で、先に `read:packages` だけの PAT で入っておきます。
+
+```bash
+echo "<read:packages だけの PAT>" | docker login ghcr.io -u <GitHub のユーザー名> --password-stdin
+```
+
 ## サーバー側 (`ops/`)
 
 | ファイル | 置き場所 | 役割 |
 | --- | --- | --- |
 | `both-service/docker-compose.yaml` | `/home/service-user/` | Velocity に limbo (PicoLimbo) を足したもの。limbo のポートは公開しません。 |
 | `both-service/limbo/server.toml` | `/home/service-user/limbo/` | limbo の設定 (BungeeGuard)。トークンは `limbo.env` から渡します（`velocity/forwarding.secret` と同じ値。権限 640）。 |
-| `both-service/update_velocity.sh` | `/home/service-user/` | 毎朝 05:25 に `reboot.sh` から呼ばれます。Geyser・Floodgate・Via・イメージを別の場所に取ってきます。変わったものがあれば、誰もいなくなってから Velocity を作り直します。最大 6 時間待ち、それでも人がいればその日は見送ります。 |
+| `both-service/update_velocity.sh` | `/home/service-user/` | 毎朝 05:25 に `reboot.sh` から呼ばれます。Geyser・Floodgate・Via・TORO-Proxy (GHCR のイメージから)・Velocity のイメージを別の場所に取ってきます。変わったものがあれば、誰もいなくなってから Velocity を作り直します。最大 6 時間待ち、それでも人がいればその日は見送ります。 |
 | `toroserver/scripts/daily_backup.sh` | `/home/server-user/scripts/` | 毎朝 05:29 の処理です。動いているうちに一度ミラーリングしてから止めるので、止まる時間が短くなります。人がいれば 60 秒前に知らせ、`staged/` を入れてから起動を確かめます。 |
 | `toroserver/scripts/restart.sh` | 同上 | 手で行う計画再起動です。止めるのは toro-main だけで、TiDB・地図・Tunnel は止めません。 |
 | `toroserver/scripts/apply_staged.sh` | 同上 | `staged/` の JAR や設定を `main/` に入れます。元の版は `staged-applied/<時刻>/` に残します。 |

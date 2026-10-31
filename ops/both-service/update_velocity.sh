@@ -26,6 +26,21 @@ python3 getLatestGeyser.py velocity "$UPD/velocity/plugins/Geyser-Velocity.jar"
 python3 getLatestFloodgate.py velocity "$UPD/velocity/plugins/Floodgate-velocity.jar"
 (cd "$UPD" && python3 ../getVia.py)
 
+# TORO-Proxy 自身。GHCR の非公開イメージ (JAR が 1 つ入っているだけ) から取り出す。版は PROXY_TAG で決める (上げるときは、ここを書き換える)。
+# 入れた版は proxy-plugin.tag に覚え、同じ版のあいだは取りに行かない (手で入れた TORO-Proxy-<版>.jar があれば、その版も入っているとみなす)。
+# イメージを取るには、このスクリプトを動かすユーザーで `docker login ghcr.io` を済ませておく (read:packages だけの PAT)
+PROXY_IMAGE=ghcr.io/toro-server/toro-proxy
+PROXY_TAG=1.1.0
+if [ "$(cat ./proxy-plugin.tag 2> /dev/null)" != "$PROXY_TAG" ] && [ ! -e "./velocity/plugins/TORO-Proxy-$PROXY_TAG.jar" ]; then
+    cid=$(docker create "$PROXY_IMAGE:$PROXY_TAG" /TORO-Proxy.jar 2> /dev/null)
+    if [ -n "$cid" ] && docker cp "$cid:/TORO-Proxy.jar" "$UPD/velocity/plugins/TORO-Proxy.jar" > /dev/null 2>&1; then
+        log "TORO-Proxy $PROXY_TAG を取りました"
+    else
+        log "TORO-Proxy $PROXY_TAG を GHCR から取れませんでした (docker login ghcr.io は済んでいますか)。今の版のままにします"
+    fi
+    [ -n "$cid" ] && docker rm "$cid" > /dev/null
+fi
+
 changed=()
 for jar in "$UPD"/velocity/plugins/*.jar; do
     name=$(basename "$jar")
@@ -61,6 +76,11 @@ fi
 
 for name in "${changed[@]}"; do
     [ "$name" = image ] && continue
+    if [ "$name" = TORO-Proxy.jar ]; then
+        # 版の付いた古い名前 (TORO-Proxy-1.1.0.jar など) が残ると、同じプラグインが 2 つになる
+        rm -f ./velocity/plugins/TORO-Proxy-*.jar
+        echo "$PROXY_TAG" > ./proxy-plugin.tag
+    fi
     cp "$UPD/velocity/plugins/$name" "./velocity/plugins/$name"
     log "入れました: $name"
 done

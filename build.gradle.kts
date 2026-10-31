@@ -39,6 +39,12 @@ tasks.jar {
     archiveClassifier.set("thin")
 }
 
+// 同じソースからは、どこでビルドしても同じ JAR になるようにする (時刻と順番を固定)
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
 // Kotlin の標準ライブラリは JAR に入れる。ほかの Kotlin 製プラグインと衝突しないよう、パッケージを移す
 tasks.shadowJar {
     archiveBaseName.set("TORO-Proxy")
