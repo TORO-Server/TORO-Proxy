@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 ONLINE_FILE=./velocity/plugins/toro-proxy/online.txt
-IMAGE=ghcr.io/malken21/docker-minecraft-velocity:latest
+IMAGE=ghcr.io/toro-server/docker-minecraft-velocity:latest
 WAIT_MINUTES=${WAIT_MINUTES:-360}
 
 online_players() {

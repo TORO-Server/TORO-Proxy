@@ -35,12 +35,12 @@ safe_name() { case "$1" in *\'*|*/..*|../*|..) return 1 ;; *) return 0 ;; esac; 
 
 if [ -n "$has_remove" ]; then
     while read -r line || [ -n "$line" ]; do
-        f=$(echo "${line%%#*}" | xargs)
+        f=$(echo "${line%%#*}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         [ -z "$f" ] && continue
         if [[ "$f" == */* ]] || ! safe_name "$f"; then log "外す名前が不正なので飛ばします: $f"; continue; fi
         if [ -e "$MAIN/plugins/$f" ]; then
             mv "$MAIN/plugins/$f" "$dest/backup/plugins/$f"
-            echo "mv '$dest/backup/plugins/$f' '$MAIN/plugins/$f'" >> "$undo"
+            printf 'RESTORE\t%s\t%s\n' "$dest/backup/plugins/$f" "$MAIN/plugins/$f" >> "$undo"
             log "外しました: plugins/$f"
         else
             log "外す JAR がありません: plugins/$f"
@@ -53,12 +53,12 @@ for jar in "$STAGE_DIR"/plugins/*.jar; do
     f=$(basename "$jar")
     safe_name "$f" || { log "名前が不正なので飛ばします: $f"; continue; }
     if [ -e "$MAIN/plugins/$f" ]; then
-        cp -p "$MAIN/plugins/$f" "$dest/backup/plugins/$f"
-        echo "cp -p '$dest/backup/plugins/$f' '$MAIN/plugins/$f'" >> "$undo"
+        cp -P -p "$MAIN/plugins/$f" "$dest/backup/plugins/$f"
+        printf 'RESTORE\t%s\t%s\n' "$dest/backup/plugins/$f" "$MAIN/plugins/$f" >> "$undo"
     else
-        echo "rm -f '$MAIN/plugins/$f'" >> "$undo"
+        printf 'DELETE\t%s\n' "$MAIN/plugins/$f" >> "$undo"
     fi
-    cp "$jar" "$MAIN/plugins/$f"
+    cp -P -p "$jar" "$MAIN/plugins/$f"
     log "入れました: plugins/$f"
 done
 
@@ -68,22 +68,41 @@ while IFS= read -r -d '' rel; do
     target="$MAIN/$rel"
     if [ -e "$target" ]; then
         mkdir -p "$dest/backup/main/$(dirname "$rel")"
-        cp -p "$target" "$dest/backup/main/$rel"
-        echo "cp -p '$dest/backup/main/$rel' '$target'" >> "$undo"
+        cp -P -p "$target" "$dest/backup/main/$rel"
+        printf 'RESTORE\t%s\t%s\n' "$dest/backup/main/$rel" "$target" >> "$undo"
     else
-        echo "rm -f '$target'" >> "$undo"
+        printf 'DELETE\t%s\n' "$target" >> "$undo"
     fi
     mkdir -p "$(dirname "$target")"
-    cp "$STAGE_DIR/main/$rel" "$target"
+    cp -P -p "$STAGE_DIR/main/$rel" "$target"
     log "入れました: $rel"
 done < <(cd "$STAGE_DIR/main" && find . -type f -print0)
 
-cat > "$dest/rollback.sh" <<EOF
+cat > "$dest/rollback.sh" << 'EOF'
 #!/bin/bash
-# $dest で入れたものを元に戻す。toro-main を止めてから実行する
-set -e
-tac '$undo' | bash -e
-echo "元に戻しました: $dest"
+# 入れたものを元に戻す。toro-main を止めてから実行する
+set -euo pipefail
+undo="$(dirname "$0")/undo.list"
+if [ ! -f "$undo" ]; then
+    echo "undo.list が見つかりません"
+    exit 1
+fi
+tac "$undo" | while IFS=$'\t' read -r action src dst || [ -n "$action" ]; do
+    case "$action" in
+        RESTORE)
+            if [ -n "$src" ] && [ -n "$dst" ] && [ -e "$src" ]; then
+                mkdir -p "$(dirname "$dst")"
+                cp -P -p "$src" "$dst"
+            fi
+            ;;
+        DELETE)
+            if [ -n "$src" ] && [ -e "$src" ]; then
+                rm -f "$src"
+            fi
+            ;;
+    esac
+done
+echo "元に戻しました"
 EOF
 chmod +x "$dest/rollback.sh"
 

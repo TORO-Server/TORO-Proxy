@@ -1,12 +1,13 @@
 services:
   toro-velocity:
-    image: ghcr.io/malken21/docker-minecraft-velocity:latest
+    image: ghcr.io/toro-server/docker-minecraft-velocity:latest
     container_name: toro-velocity
     user: "1000:1001"
     restart: unless-stopped
     ports:
       - "25565:25565"
       - "19132:19132/udp"
+      - "19132:19132/tcp"
     volumes:
       - "./velocity:/app"
     environment:

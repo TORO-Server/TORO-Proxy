@@ -39,11 +39,11 @@ RESTART_TIME=$(date +%s)
 DOWNTIME=$((RESTART_TIME - START_TIME))
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server back online! Total downtime: ${DOWNTIME} seconds." >> "$LOG_FILE"
 
-# 6. Trigger ZIP Backup, DB Backup and Purge in Background
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Triggering background ZIP and DB backups..." >> "$LOG_FILE"
+# 6. ワールドと DB を Google ドライブへ送り、古いものを整理する (バックグラウンド)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Triggering background Google Drive backups..." >> "$LOG_FILE"
 (
-    bash "$SCRIPT_DIR/backup.sh" "main_mirroring0530" >> "$LOG_FILE" 2>&1
-    bash "$SCRIPT_DIR/backup_db.sh" >> "$LOG_FILE" 2>&1
+    bash "$SCRIPT_DIR/backup.sh" "main_mirroring0530" >> "$LOG_FILE" 2>&1 || echo "[$(date '+%Y-%m-%d %H:%M:%S')] world backup to Google Drive failed" >> "$LOG_FILE"
+    bash "$SCRIPT_DIR/backup_db.sh" >> "$LOG_FILE" 2>&1 || echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB backup to Google Drive failed" >> "$LOG_FILE"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Background backup completed." >> "$LOG_FILE"
 ) &
 

@@ -18,11 +18,17 @@ online_players() {
 
 mc_cmd() { python3 "$MC_CMD" "$1" toro-main > /dev/null; }
 
-announce() { mc_cmd "tellraw @a {\"text\":\"[TORO] $1\",\"color\":\"yellow\"}"; }
+announce() {
+    local json
+    json=$(python3 -c "import json, sys; print(json.dumps({'text': f'[TORO] {sys.argv[1]}', 'color': 'yellow'}))" "$1")
+    mc_cmd "tellraw @a $json"
+}
 
 # 人がいるときだけ、再起動の前に知らせて待つ。いないときはすぐ返る
 countdown() {
-    local secs=${1:-60} n
+    local secs=${1:-60}
+    if ! [[ "$secs" =~ ^[0-9]+$ ]]; then secs=60; fi
+    local n
     n=$(online_players)
     if [ "$n" = 0 ]; then return; fi
     if [ "$secs" -gt 10 ]; then
