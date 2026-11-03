@@ -4,6 +4,7 @@ import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.player.KickedFromServerEvent
 import com.velocitypowered.api.event.player.ServerConnectedEvent
+import com.velocitypowered.api.event.player.ServerPreConnectEvent
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
@@ -57,6 +58,17 @@ class LimboRelay(
         // velocity.toml の try に limbo を入れたので、何もしないと BAN でも limbo に送られてしまう
         forget(player.uniqueId)
         event.result = KickedFromServerEvent.DisconnectPlayer.create(shown)
+    }
+
+    @Subscribe
+    fun onPreConnect(event: ServerPreConnectEvent) {
+        val target = event.originalServer.serverInfo.name
+        if (target.equals(config.limboServer, ignoreCase = true)) {
+            // 既に何らかのサーバーに接続中のプレイヤーが手動で limbo に接続しようとした場合は拒否
+            if (event.player.currentServer.isPresent) {
+                event.result = ServerPreConnectEvent.ServerResult.denied()
+            }
+        }
     }
 
     @Subscribe

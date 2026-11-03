@@ -39,5 +39,21 @@ class KickPolicyTest {
         assertEquals("limbo", config.limboServer)
         assertEquals(setOf("Server closed", "サーバーを再起動しています"), config.restartKickMessages)
         assertEquals(1, config.checkIntervalSeconds)
+        assertEquals(0, config.clientsIntervalSeconds)
+    }
+
+    @Test
+    fun `クライアント通知間隔の設定`() {
+        val configWithZero = ProxyConfig.from(Properties().apply {
+            setProperty("main-servers", "toro")
+            setProperty("clients-interval-seconds", "0")
+        })
+        assertEquals(0, configWithZero.clientsIntervalSeconds)
+
+        val configWithVal = ProxyConfig.from(Properties().apply {
+            setProperty("main-servers", "toro")
+            setProperty("clients-interval-seconds", "60")
+        })
+        assertEquals(60, configWithVal.clientsIntervalSeconds)
     }
 }

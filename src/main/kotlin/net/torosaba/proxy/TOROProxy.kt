@@ -29,6 +29,11 @@ class TOROProxy @Inject constructor(
             reporter.start()
             logger.info("いまつながっているプレイヤーの IP を {} に知らせます", config.clientsEndpoint)
         }
+        // built-in の /server を解除し、limbo を隠したカスタム /server を登録
+        proxy.commandManager.unregister("server")
+        val serverMeta = proxy.commandManager.metaBuilder("server").plugin(this).build()
+        proxy.commandManager.register(serverMeta, ServerCommand(proxy, config))
+
         val missing = (config.mainServers + config.limboServer).filter { proxy.getServer(it).isEmpty }
         if (missing.isNotEmpty()) {
             logger.warn("velocity.toml に無いサーバーがあります: {}。limbo での待機は動きません", missing)

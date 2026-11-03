@@ -30,7 +30,7 @@ python3 getLatestFloodgate.py velocity "$UPD/velocity/plugins/Floodgate-velocity
 # 入れた版は proxy-plugin.tag に覚え、同じ版のあいだは取りに行かない (手で入れた TORO-Proxy-<版>.jar があれば、その版も入っているとみなす)。
 # イメージを取るには、このスクリプトを動かすユーザーで `docker login ghcr.io` を済ませておく (read:packages だけの PAT)
 PROXY_IMAGE=ghcr.io/toro-server/toro-proxy
-PROXY_TAG=1.1.0
+PROXY_TAG=1.2.0
 if [ "$(cat ./proxy-plugin.tag 2> /dev/null)" != "$PROXY_TAG" ] && [ ! -e "./velocity/plugins/TORO-Proxy-$PROXY_TAG.jar" ]; then
     cid=$(docker create "$PROXY_IMAGE:$PROXY_TAG" /TORO-Proxy.jar 2> /dev/null)
     if [ -n "$cid" ] && docker cp "$cid:/TORO-Proxy.jar" "$UPD/velocity/plugins/TORO-Proxy.jar" > /dev/null 2>&1; then

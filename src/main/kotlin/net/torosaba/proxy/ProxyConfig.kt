@@ -49,8 +49,8 @@ message-returning=サーバーが起動しました。戻ります。
 clients-endpoint=http://toro-map-web:3000/live/clients
 # 知らせる先の合言葉 (toro-map-web の NUXT_CLIENTS_TOKEN と同じもの)。空なら知らせない
 clients-token=
-# 知らせる間隔 (秒)。人の出入りがあったときは、すぐ知らせる
-clients-interval-seconds=30
+# 定期同期間隔 (秒)。人の出入りがあったときは即座にイベント駆動で送信するため、通常は 0 (無効) で十分。万一のためのフェイルセーフ同期を行いたい場合のみ秒数を指定
+clients-interval-seconds=0
 """
 
         fun load(dir: Path): ProxyConfig {
@@ -81,7 +81,7 @@ clients-interval-seconds=30
                 returningMessage = str("message-returning"),
                 clientsEndpoint = str("clients-endpoint"),
                 clientsToken = str("clients-token"),
-                clientsIntervalSeconds = long("clients-interval-seconds", 5),
+                clientsIntervalSeconds = long("clients-interval-seconds", 0),
             )
         }
     }
