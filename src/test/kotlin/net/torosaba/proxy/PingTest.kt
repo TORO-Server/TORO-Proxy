@@ -36,10 +36,12 @@ class PingTest {
     fun testPingConfigMatching(@TempDir tempDir: Path) {
         val config = PingConfig.load(tempDir)
 
-        // mc.marumasa.dev
+        // mc.marumasa.dev (アイコン以外は marumasa.dev と同一)
         val mcConfig = config.findHostConfig("mc.marumasa.dev")
-        assertEquals("1.0.0から99.99.99", mcConfig.versionName)
-        assertEquals("-1", mcConfig.versionProtocol)
+        assertEquals("1.99.9", mcConfig.versionName)
+        assertEquals("client", mcConfig.versionProtocol)
+        assertEquals(50000, mcConfig.playersMax)
+        assertEquals("1000..40000", mcConfig.playersOnline)
         assertEquals(listOf("server-icon-3.0.png"), mcConfig.favicon)
 
         // marumasa.dev
@@ -47,6 +49,8 @@ class PingTest {
         assertEquals("1.99.9", marumasaConfig.versionName)
         assertEquals(50000, marumasaConfig.playersMax)
         assertEquals("1000..40000", marumasaConfig.playersOnline)
+        assertEquals(marumasaConfig.description, mcConfig.description)
+        assertEquals(marumasaConfig.playersHover, mcConfig.playersHover)
 
         // torosaba.net
         val torosabaConfig = config.findHostConfig("torosaba.net")
