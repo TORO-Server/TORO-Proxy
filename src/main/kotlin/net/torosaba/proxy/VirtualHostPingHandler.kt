@@ -81,8 +81,11 @@ class VirtualHostPingHandler(
         }
 
         // 5. Favicon
-        if (hostConfig.favicon.isNotEmpty()) {
-            val fav = faviconManager.getFavicon(hostConfig.favicon)
+        val faviconList = hostConfig.favicon.ifEmpty {
+            pingConfig.findHostConfig("default").favicon
+        }
+        if (faviconList.isNotEmpty()) {
+            val fav = faviconManager.getFavicon(faviconList)
             if (fav != null) {
                 builder.favicon(fav)
             }
