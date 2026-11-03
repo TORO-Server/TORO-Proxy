@@ -49,7 +49,7 @@ class PingTest {
         assertEquals("1.99.9", marumasaConfig.versionName)
         assertEquals(50000, marumasaConfig.playersMax)
         assertEquals("1000..40000", marumasaConfig.playersOnline)
-        assertEquals(listOf("toro.png"), marumasaConfig.favicon)
+        assertEquals(listOf("server-icon-3.0.png"), marumasaConfig.favicon)
         assertEquals(marumasaConfig.description, mcConfig.description)
         assertEquals(marumasaConfig.playersHover, mcConfig.playersHover)
 
