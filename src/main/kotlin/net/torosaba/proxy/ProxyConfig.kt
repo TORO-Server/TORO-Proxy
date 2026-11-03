@@ -21,10 +21,6 @@ data class ProxyConfig(
     val clientsEndpoint: String,
     val clientsToken: String,
     val clientsIntervalSeconds: Long,
-    val marumasaDomains: List<String>,
-    val marumasaVersionName: String,
-    val marumasaVersionProtocol: String,
-    val marumasaIconFile: String,
 ) {
     fun moved(): Component = Component.text(movedMessage, NamedTextColor.YELLOW)
     fun returning(): Component = Component.text(returningMessage, NamedTextColor.GREEN)
@@ -55,15 +51,6 @@ clients-endpoint=http://toro-map-web:3000/live/clients
 clients-token=
 # 定期同期間隔 (秒)。人の出入りがあったときは即座にイベント駆動で送信するため、通常は 0 (無効) で十分。万一のためのフェイルセーフ同期を行いたい場合のみ秒数を指定
 clients-interval-seconds=0
-# mc.marumasa.dev など特定ドメインからの接続に対する Ping (サーバーリスト) カスタマイズ
-# 対象のホスト名 (| で複数指定可能)
-marumasa-domains=mc.marumasa.dev
-# 表示するバージョン名 (空なら変更しない)
-marumasa-version-name=1.0.0から99.99.99
-# プロトコルバージョン (-1 で常時赤文字表示、original で元のプロトコル、client で接続クライアントに合わせる)
-marumasa-version-protocol=-1
-# 使用するアイコン画像ファイル名 (plugins/toro-proxy/ 相対。無ければ内蔵の 3.0式アイコンを出力)
-marumasa-icon-file=server-icon-3.0.png
 """
 
         fun load(dir: Path): ProxyConfig {
@@ -95,10 +82,6 @@ marumasa-icon-file=server-icon-3.0.png
                 clientsEndpoint = str("clients-endpoint"),
                 clientsToken = str("clients-token"),
                 clientsIntervalSeconds = long("clients-interval-seconds", 0),
-                marumasaDomains = list("marumasa-domains").ifEmpty { listOf("mc.marumasa.dev") },
-                marumasaVersionName = props.getProperty("marumasa-version-name")?.trim() ?: "1.0.0から99.99.99",
-                marumasaVersionProtocol = props.getProperty("marumasa-version-protocol")?.trim() ?: "-1",
-                marumasaIconFile = props.getProperty("marumasa-icon-file")?.trim() ?: "server-icon-3.0.png",
             )
         }
     }

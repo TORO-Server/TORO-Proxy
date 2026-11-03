@@ -1,31 +1,34 @@
 package net.torosaba.proxy
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import java.util.Properties
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class KickPolicyTest {
-    private val messages = setOf("Server closed", "Server is restarting")
+    private val restartMessages = setOf("Server closed", "Server is restarting")
 
     @Test
-    fun `理由なしの切断は再起動とみなす`() {
-        assertTrue(KickPolicy.isRestart(null, messages))
-        assertTrue(KickPolicy.isRestart("  ", messages))
+    fun `再起動メッセージは limbo に送る`() {
+        assertTrue(KickPolicy.isRestart("Server closed", restartMessages))
+        assertTrue(KickPolicy.isRestart("Server is restarting", restartMessages))
     }
 
     @Test
-    fun `Paper の停止メッセージは再起動とみなす`() {
-        assertTrue(KickPolicy.isRestart("Server closed", messages))
-        assertTrue(KickPolicy.isRestart("Server is restarting\n", messages))
+    fun `理由なしは limbo に送る`() {
+        assertTrue(KickPolicy.isRestart(null, restartMessages))
+        assertTrue(KickPolicy.isRestart("", restartMessages))
+        assertTrue(KickPolicy.isRestart("   ", restartMessages))
     }
 
     @Test
-    fun `BAN や kick は再起動とみなさない`() {
-        assertFalse(KickPolicy.isRestart("You are banned from this server.", messages))
-        assertFalse(KickPolicy.isRestart("Kicked by an operator.", messages))
-        assertFalse(KickPolicy.isRestart("Server closed for you: griefing", messages))
+    fun `BAN や kick はそのまま切る`() {
+        assertFalse(KickPolicy.isRestart("You are banned from this server", restartMessages))
+        assertFalse(KickPolicy.isRestart("Kicked by an operator", restartMessages))
+        assertFalse(KickPolicy.isRestart("Server is full!", restartMessages))
+        assertFalse(KickPolicy.isRestart("You are not whitelisted on this server!", restartMessages))
+        assertFalse(KickPolicy.isRestart("[Paper] Server closed", restartMessages))
     }
 
     @Test
@@ -40,25 +43,6 @@ class KickPolicyTest {
         assertEquals(setOf("Server closed", "サーバーを再起動しています"), config.restartKickMessages)
         assertEquals(1, config.checkIntervalSeconds)
         assertEquals(0, config.clientsIntervalSeconds)
-        assertEquals(listOf("mc.marumasa.dev"), config.marumasaDomains)
-        assertEquals("1.0.0から99.99.99", config.marumasaVersionName)
-        assertEquals("-1", config.marumasaVersionProtocol)
-        assertEquals("server-icon-3.0.png", config.marumasaIconFile)
-    }
-
-    @Test
-    fun `marumasaドメイン設定の上書き`() {
-        val config = ProxyConfig.from(Properties().apply {
-            setProperty("main-servers", "toro")
-            setProperty("marumasa-domains", "mc.marumasa.dev | test.marumasa.dev")
-            setProperty("marumasa-version-name", "Custom Version")
-            setProperty("marumasa-version-protocol", "keep")
-            setProperty("marumasa-icon-file", "custom.png")
-        })
-        assertEquals(listOf("mc.marumasa.dev", "test.marumasa.dev"), config.marumasaDomains)
-        assertEquals("Custom Version", config.marumasaVersionName)
-        assertEquals("keep", config.marumasaVersionProtocol)
-        assertEquals("custom.png", config.marumasaIconFile)
     }
 
     @Test

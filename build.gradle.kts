@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.torosaba"
-version = "1.3.0"
+version = "1.4.0"
 
 repositories {
     mavenCentral()
@@ -17,8 +17,10 @@ kotlin {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    implementation("org.yaml:snakeyaml:2.2")
     compileOnly("com.velocitypowered:velocity-api:4.3.1")
 
+    testImplementation("com.velocitypowered:velocity-api:4.3.1")
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
@@ -52,6 +54,7 @@ tasks.shadowJar {
     relocate("kotlin", "net.torosaba.proxy.libs.kotlin")
     relocate("org.jetbrains.annotations", "net.torosaba.proxy.libs.annotations")
     relocate("org.intellij.lang.annotations", "net.torosaba.proxy.libs.intellij")
+    relocate("org.yaml.snakeyaml", "net.torosaba.proxy.libs.snakeyaml")
 }
 
 tasks.assemble {

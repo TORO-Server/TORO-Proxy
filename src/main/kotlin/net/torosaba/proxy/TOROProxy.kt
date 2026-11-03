@@ -1,10 +1,13 @@
 package net.torosaba.proxy
 
 import com.google.inject.Inject
+import com.velocitypowered.api.command.SimpleCommand
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.slf4j.Logger
 import java.io.IOException
 import java.nio.file.Files
@@ -34,9 +37,29 @@ class TOROProxy @Inject constructor(
         val serverMeta = proxy.commandManager.metaBuilder("server").plugin(this).build()
         proxy.commandManager.register(serverMeta, ServerCommand(proxy, config))
 
-        // mc.marumasa.dev 等のドメイン別 Ping カスタマイズ
-        val pingHandler = VirtualHostPingHandler(proxy, logger, config, dataDir)
+        // ドメイン別 Ping (MOTD・Favicon・バージョン表示) ハンドラ (ServerListPlus 完全代替)
+        val pingHandler = VirtualHostPingHandler(proxy, logger, dataDir)
         proxy.eventManager.register(this, pingHandler)
+
+        // /toroproxy コマンド (設定リロード等)
+        val toroProxyCmd = object : SimpleCommand {
+            override fun execute(invocation: SimpleCommand.Invocation) {
+                val source = invocation.source()
+                val args = invocation.arguments()
+                if (args.isNotEmpty() && args[0].equals("reload", ignoreCase = true)) {
+                    pingHandler.reload()
+                    source.sendMessage(Component.text("[TORO-Proxy] ping.yml を再読み込みしました。", NamedTextColor.GREEN))
+                } else {
+                    source.sendMessage(Component.text("使用法: /toroproxy reload", NamedTextColor.YELLOW))
+                }
+            }
+
+            override fun hasPermission(invocation: SimpleCommand.Invocation): Boolean {
+                return invocation.source().hasPermission("toroproxy.admin")
+            }
+        }
+        val toroProxyMeta = proxy.commandManager.metaBuilder("toroproxy").plugin(this).build()
+        proxy.commandManager.register(toroProxyMeta, toroProxyCmd)
 
         val missing = (config.mainServers + config.limboServer).filter { proxy.getServer(it).isEmpty }
         if (missing.isNotEmpty()) {
