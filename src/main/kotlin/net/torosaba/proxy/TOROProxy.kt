@@ -34,6 +34,10 @@ class TOROProxy @Inject constructor(
         val serverMeta = proxy.commandManager.metaBuilder("server").plugin(this).build()
         proxy.commandManager.register(serverMeta, ServerCommand(proxy, config))
 
+        // mc.marumasa.dev 等のドメイン別 Ping カスタマイズ
+        val pingHandler = VirtualHostPingHandler(proxy, logger, config, dataDir)
+        proxy.eventManager.register(this, pingHandler)
+
         val missing = (config.mainServers + config.limboServer).filter { proxy.getServer(it).isEmpty }
         if (missing.isNotEmpty()) {
             logger.warn("velocity.toml に無いサーバーがあります: {}。limbo での待機は動きません", missing)

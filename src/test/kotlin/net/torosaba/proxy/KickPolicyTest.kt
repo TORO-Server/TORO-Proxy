@@ -40,6 +40,25 @@ class KickPolicyTest {
         assertEquals(setOf("Server closed", "サーバーを再起動しています"), config.restartKickMessages)
         assertEquals(1, config.checkIntervalSeconds)
         assertEquals(0, config.clientsIntervalSeconds)
+        assertEquals(listOf("mc.marumasa.dev"), config.marumasaDomains)
+        assertEquals("1.0.0から99.99.99", config.marumasaVersionName)
+        assertEquals("-1", config.marumasaVersionProtocol)
+        assertEquals("server-icon-3.0.png", config.marumasaIconFile)
+    }
+
+    @Test
+    fun `marumasaドメイン設定の上書き`() {
+        val config = ProxyConfig.from(Properties().apply {
+            setProperty("main-servers", "toro")
+            setProperty("marumasa-domains", "mc.marumasa.dev | test.marumasa.dev")
+            setProperty("marumasa-version-name", "Custom Version")
+            setProperty("marumasa-version-protocol", "keep")
+            setProperty("marumasa-icon-file", "custom.png")
+        })
+        assertEquals(listOf("mc.marumasa.dev", "test.marumasa.dev"), config.marumasaDomains)
+        assertEquals("Custom Version", config.marumasaVersionName)
+        assertEquals("keep", config.marumasaVersionProtocol)
+        assertEquals("custom.png", config.marumasaIconFile)
     }
 
     @Test
