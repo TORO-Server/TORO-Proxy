@@ -1,7 +1,30 @@
+# 共通の部品 (x- で始まるキーは compose が読み飛ばす)。状態を持たず、作り直しても困らないサービスにだけ使う。
+# Velocity は作り直すと全員が切れるので使わない (update_velocity.sh が誰もいないときだけ作り直す)
+x-base: &base
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  # ログがディスクを埋めないようにする (1 サービス 30 MB まで)
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+# 書く場所が決まっているサービス。capability も全部捨てる
+x-locked: &locked
+  <<: *base
+  cap_drop:
+    - ALL
+
 services:
   toro-velocity:
-    image: ghcr.io/toro-server/docker-minecraft-velocity:latest
+    # タグで固定。上げるときはこのタグを PR で上げる (update_velocity.sh が、誰もいないときに作り直す)
+    image: ghcr.io/toro-server/docker-minecraft-velocity:4.3.1
     container_name: toro-velocity
+    labels:
+      # deploy.sh の対象外 (作り直すと全員が切れる)
+      toro.deploy.protected: "true"
     user: "1000:1001"
     restart: unless-stopped
     ports:
@@ -21,10 +44,10 @@ services:
 
   # toro-main の再起動中にプレイヤーが待つ limbo (PicoLimbo)。ポートは公開せず、Velocity からだけ繋ぐ
   toro-limbo:
-    image: ghcr.io/quozul/picolimbo:v1.15.0-mc26.3
+    image: ghcr.io/quozul/picolimbo:v1.15.0-mc26.3@sha256:f31b20040fd8a3103a97429cca0b4622aee6c7eec1543b220d09cd5aca22588d
     container_name: toro-limbo
     user: "1000:1001"
-    restart: unless-stopped
+    <<: *locked
     env_file:
       - ./limbo.env
     volumes:
@@ -32,6 +55,7 @@ services:
     mem_limit: 128m
     networks:
       - minecraft-network
+
 networks:
   minecraft-network:
     external: true

@@ -6,7 +6,8 @@ cd "$(dirname "$0")"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 ONLINE_FILE=./velocity/plugins/toro-proxy/online.txt
-IMAGE=ghcr.io/toro-server/docker-minecraft-velocity:latest
+# Velocity のイメージは docker-compose.yaml のタグ (固定) に従う。上げるときは compose のタグを PR で上げる
+IMAGE=$(docker compose config --images | grep '/docker-minecraft-velocity:')
 WAIT_MINUTES=${WAIT_MINUTES:-360}
 
 online_players() {
@@ -30,7 +31,7 @@ python3 getLatestFloodgate.py velocity "$UPD/velocity/plugins/Floodgate-velocity
 # 入れた版は proxy-plugin.tag に覚え、同じ版のあいだは取りに行かない (手で入れた TORO-Proxy-<版>.jar があれば、その版も入っているとみなす)。
 # イメージを取るには、このスクリプトを動かすユーザーで `docker login ghcr.io` を済ませておく (read:packages だけの PAT)
 PROXY_IMAGE=ghcr.io/toro-server/toro-proxy
-PROXY_TAG=1.3.0
+PROXY_TAG=1.4.5
 if [ "$(cat ./proxy-plugin.tag 2> /dev/null)" != "$PROXY_TAG" ] && [ ! -e "./velocity/plugins/TORO-Proxy-$PROXY_TAG.jar" ]; then
     cid=$(docker create "$PROXY_IMAGE:$PROXY_TAG" /TORO-Proxy.jar 2> /dev/null)
     if [ -n "$cid" ] && docker cp "$cid:/TORO-Proxy.jar" "$UPD/velocity/plugins/TORO-Proxy.jar" > /dev/null 2>&1; then

@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # 自前以外のイメージ (タグと @sha256: の両方を直す)。自前のイメージ (Velocity) はタグを PR で上げる
+  - package-ecosystem: docker-compose
+    directory: /ops/both-service
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: 'ghcr.io/toro-server/*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

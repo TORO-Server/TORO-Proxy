@@ -1,0 +1,40 @@
+name: compose
+
+# ops/both-service/docker-compose.yaml を変えたら、構文とイメージの決まり (.github/scripts/check-images.py) を確かめる
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/both-service/docker-compose.yaml'
+      - 'ops/both-service/update_velocity.sh'
+      - '.github/scripts/check-images.py'
+      - '.github/workflows/compose.yml'
+  pull_request:
+    paths:
+      - 'ops/both-service/docker-compose.yaml'
+      - 'ops/both-service/update_velocity.sh'
+      - '.github/scripts/check-images.py'
+      - '.github/workflows/compose.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: イメージの決まり
+        run: python3 .github/scripts/check-images.py ops/both-service/docker-compose.yaml
+
+      - name: compose の構文
+        working-directory: ops/both-service
+        run: |
+          # 秘密の env ファイルは git に入れないので、空のものを置く
+          touch limbo.env
+          docker compose config -q
