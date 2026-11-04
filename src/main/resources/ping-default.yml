@@ -30,7 +30,7 @@ hosts:
       name: "1.99.9"
       protocol: "client"
     players:
-      online: "1000..40000"
+      online: "1000..2147483647"
       max: 50000
       hover:
         - |-
@@ -60,7 +60,7 @@ hosts:
       name: "1.99.9"
       protocol: "client"
     players:
-      online: "1000..40000"
+      online: "1000..2147483647"
       max: 50000
       hover:
         - |-

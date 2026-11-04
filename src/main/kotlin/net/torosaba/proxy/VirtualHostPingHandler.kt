@@ -98,10 +98,11 @@ class VirtualHostPingHandler(
         if (spec.isNullOrBlank()) return null
         val range = spec.split("..")
         if (range.size == 2) {
-            val min = range[0].trim().toIntOrNull()
-            val max = range[1].trim().toIntOrNull()
+            val min = range[0].trim().toLongOrNull()
+            val max = range[1].trim().toLongOrNull()
             if (min != null && max != null && min <= max) {
-                return ThreadLocalRandom.current().nextInt(min, max + 1)
+                val rand = ThreadLocalRandom.current().nextLong(min, max + 1)
+                return rand.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
             }
         }
         return spec.trim().toIntOrNull()

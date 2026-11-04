@@ -41,14 +41,14 @@ class PingTest {
         assertEquals("1.99.9", mcConfig.versionName)
         assertEquals("client", mcConfig.versionProtocol)
         assertEquals(50000, mcConfig.playersMax)
-        assertEquals("1000..40000", mcConfig.playersOnline)
+        assertEquals("1000..2147483647", mcConfig.playersOnline)
         assertEquals(listOf("server-icon-3.0.png"), mcConfig.favicon)
 
         // marumasa.dev
         val marumasaConfig = config.findHostConfig("marumasa.dev")
         assertEquals("1.99.9", marumasaConfig.versionName)
         assertEquals(50000, marumasaConfig.playersMax)
-        assertEquals("1000..40000", marumasaConfig.playersOnline)
+        assertEquals("1000..2147483647", marumasaConfig.playersOnline)
         assertEquals(listOf("server-icon-3.0.png"), marumasaConfig.favicon)
         assertEquals(marumasaConfig.description, mcConfig.description)
         assertEquals(marumasaConfig.playersHover, mcConfig.playersHover)
@@ -68,5 +68,17 @@ class PingTest {
         val unknownConfig = config.findHostConfig("unknown.domain.org")
         assertEquals("1.12.2-26.3", unknownConfig.versionName)
         assertEquals(listOf("toro.png"), unknownConfig.favicon)
+    }
+
+    @Test
+    fun testParseOnlineMaxInt() {
+        val spec = "1000..2147483647"
+        val range = spec.split("..")
+        val min = range[0].trim().toLongOrNull()!!
+        val max = range[1].trim().toLongOrNull()!!
+        assertTrue(max == 2147483647L)
+        val rand = java.util.concurrent.ThreadLocalRandom.current().nextLong(min, max + 1)
+        val intVal = rand.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+        assertTrue(intVal in 1000..2147483647)
     }
 }
