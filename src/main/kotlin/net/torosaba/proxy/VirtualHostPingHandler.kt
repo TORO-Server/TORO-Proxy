@@ -2,6 +2,7 @@ package net.torosaba.proxy
 
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.proxy.ProxyPingEvent
+import com.velocitypowered.api.network.ProtocolVersion
 import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.server.ServerPing
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -9,6 +10,29 @@ import org.slf4j.Logger
 import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
+
+/**
+ * サーバーリストに返す protocol。
+ * 古い形の ping (Minecraft 1.6 以前の形。minecraft.jp などの監視サイトが使う) の相手は LEGACY (-2)、版の分からない相手は UNKNOWN (-1) になる。
+ * どちらも Minecraft の版ではないので、そのまま返すと「Protocol Version が不正」と扱われる。Velocity が対応する最新の版を返す
+ */
+internal fun listedProtocol(protocol: Int): Int =
+    if (protocol > 0) protocol else ProtocolVersion.MAXIMUM_VERSION.protocol
+
+/**
+ * サーバーリストに返す protocol を、host の設定から決める。
+ * 名前が無い host と "keep" / "original" では元の ping の protocol を、"client" では接続してきた相手の protocol を、
+ * 数値の文字列ならその値を、解釈できない文字列なら -1 を返す (版でない値は listedProtocol が直す)
+ */
+internal fun resolveProtocol(versionName: String?, versionProtocol: String, originalProtocol: Int, clientProtocol: Int): Int =
+    when {
+        versionName == null -> originalProtocol
+        else -> when (versionProtocol.lowercase()) {
+            "keep", "original" -> originalProtocol
+            "client" -> clientProtocol
+            else -> versionProtocol.toIntOrNull() ?: -1
+        }
+    }
 
 class VirtualHostPingHandler(
     private val proxy: ProxyServer,
@@ -33,15 +57,14 @@ class VirtualHostPingHandler(
         val original = event.ping
         val builder = original.asBuilder()
 
-        // 1. Version
-        hostConfig.versionName?.let { versionName ->
-            val protocol = when (hostConfig.versionProtocol.lowercase()) {
-                "keep", "original" -> original.version.protocol
-                "client" -> event.connection.protocolVersion.protocol
-                else -> hostConfig.versionProtocol.toIntOrNull() ?: -1
-            }
-            builder.version(ServerPing.Version(protocol, versionName))
-        }
+        // 1. Version (名前の設定がない host でも、版でない protocol は返さない)
+        val protocol = resolveProtocol(
+            hostConfig.versionName,
+            hostConfig.versionProtocol,
+            original.version.protocol,
+            event.connection.protocolVersion.protocol,
+        )
+        builder.version(ServerPing.Version(listedProtocol(protocol), hostConfig.versionName ?: original.version.name))
 
         // 2. Players (Online & Max)
         val onlineCount = parseOnline(hostConfig.playersOnline) ?: original.players.map { it.online }.orElse(proxy.playerCount)

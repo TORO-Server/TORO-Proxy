@@ -1,5 +1,6 @@
 package net.torosaba.proxy
 
+import com.velocitypowered.api.network.ProtocolVersion
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -7,6 +8,44 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 
 class PingTest {
+
+    @Test
+    fun testListedProtocolIsAlwaysARealVersion() {
+        val latest = ProtocolVersion.MAXIMUM_VERSION.protocol
+        // 古い形の ping と、版の分からない相手
+        assertEquals(latest, listedProtocol(ProtocolVersion.LEGACY.protocol))
+        assertEquals(latest, listedProtocol(ProtocolVersion.UNKNOWN.protocol))
+        assertEquals(latest, listedProtocol(0))
+        // ふつうのクライアントには、その版をそのまま返す
+        assertEquals(ProtocolVersion.MINECRAFT_1_21.protocol, listedProtocol(ProtocolVersion.MINECRAFT_1_21.protocol))
+    }
+
+    @Test
+    fun testResolveProtocolBranches() {
+        val original = 763 // Minecraft 1.20
+        val client = ProtocolVersion.MINECRAFT_1_21.protocol
+
+        // 名前の設定がない host では、元の ping の protocol を使う
+        assertEquals(original, resolveProtocol(null, "client", original, client))
+        // keep / original では元の ping の protocol を使う (大文字小文字は問わない)
+        assertEquals(original, resolveProtocol("1.99.9", "keep", original, client))
+        assertEquals(original, resolveProtocol("1.99.9", "ORIGINAL", original, client))
+        // client では、接続してきた相手の protocol を使う
+        assertEquals(client, resolveProtocol("1.99.9", "client", original, client))
+        // 数値ならその値を、解釈できない文字列なら -1 を使う
+        assertEquals(client, resolveProtocol("1.99.9", client.toString(), original, client))
+        assertEquals(-1, resolveProtocol("1.99.9", "not-a-number", original, client))
+    }
+
+    @Test
+    fun testResolvedProtocolIsSanitizedByListedProtocol() {
+        val latest = ProtocolVersion.MAXIMUM_VERSION.protocol
+        // 名前の設定がない host に古い形の ping が来ても、-2 をそのまま返さない
+        val legacy = ProtocolVersion.LEGACY.protocol
+        assertEquals(latest, listedProtocol(resolveProtocol(null, "client", legacy, legacy)))
+        // 解釈できない文字列で -1 になっても、そのまま返さない
+        assertEquals(latest, listedProtocol(resolveProtocol("1.99.9", "???", 763, 763)))
+    }
 
     @Test
     fun testPingFormatterGradients() {
