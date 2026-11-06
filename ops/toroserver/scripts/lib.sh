@@ -9,11 +9,13 @@ APPLIED_DIR="$PROJECT_DIR/staged-applied"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# プロキシにいる人数。分からないとき (ファイルが無い・1 分以上古い) は -1
+# プロキシにいる人数。分からないとき (ファイルが無い・1 分以上古い・中身が数でない) は -1
+# このファイルは Velocity のコンテナが書けるので、中身を信じない。bash の算術は変数の中身も式として評価するので、数だと確かめてから使う
 online_players() {
     local n t
-    if [ ! -r "$ONLINE_FILE" ] || ! read -r n t < "$ONLINE_FILE"; then echo -1; return; fi
-    if [ $(( $(date +%s) - t )) -le 60 ]; then echo "$n"; else echo -1; fi
+    if [ ! -f "$ONLINE_FILE" ] || [ -L "$ONLINE_FILE" ] || ! read -r n t < "$ONLINE_FILE"; then echo -1; return; fi
+    if ! [[ "$n" =~ ^[0-9]{1,6}$ && "$t" =~ ^[0-9]{1,12}$ ]]; then echo -1; return; fi
+    if [ $(( $(date +%s) - 10#$t )) -le 60 ]; then echo "$n"; else echo -1; fi
 }
 
 mc_cmd() { python3 "$MC_CMD" "$1" toro-main > /dev/null; }

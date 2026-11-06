@@ -33,11 +33,21 @@ undo="$dest/undo.list"
 # 元に戻す手順は 1 行ずつ書き、rollback.sh で逆の順に実行する。名前に ' があるものは扱わない
 safe_name() { case "$1" in *\'*|*/..*|../*|..) return 1 ;; *) return 0 ;; esac; }
 
+# main/ はコンテナが書ける。親をたどると main/ の外に出るもの (リンク) や、ディレクトリになっている名前には書かない
+MAIN_REAL=$(realpath -e -- "$MAIN")
+safe_target() {
+    [ ! -d "$1" ] || [ -L "$1" ] || return 1
+    case "$(realpath -m -- "$(dirname -- "$1")")/" in "$MAIN_REAL"/*) return 0 ;; *) return 1 ;; esac
+}
+# 同じ名前のものを消してから置く。リンクがあっても、たどらずにリンク自身を置き換える
+place() { cp -P -p -T --remove-destination "$1" "$2"; }
+
 if [ -n "$has_remove" ]; then
     while read -r line || [ -n "$line" ]; do
         f=$(echo "${line%%#*}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         [ -z "$f" ] && continue
         if [[ "$f" == */* ]] || ! safe_name "$f"; then log "外す名前が不正なので飛ばします: $f"; continue; fi
+        safe_target "$MAIN/plugins/$f" || { log "main/ の外を指しているので飛ばします: plugins/$f"; continue; }
         if [ -e "$MAIN/plugins/$f" ]; then
             mv "$MAIN/plugins/$f" "$dest/backup/plugins/$f"
             printf 'RESTORE\t%s\t%s\n' "$dest/backup/plugins/$f" "$MAIN/plugins/$f" >> "$undo"
@@ -52,13 +62,14 @@ for jar in "$STAGE_DIR"/plugins/*.jar; do
     [ -f "$jar" ] || continue
     f=$(basename "$jar")
     safe_name "$f" || { log "名前が不正なので飛ばします: $f"; continue; }
+    safe_target "$MAIN/plugins/$f" || { log "main/ の外を指しているので飛ばします: plugins/$f"; continue; }
     if [ -e "$MAIN/plugins/$f" ]; then
         cp -P -p "$MAIN/plugins/$f" "$dest/backup/plugins/$f"
         printf 'RESTORE\t%s\t%s\n' "$dest/backup/plugins/$f" "$MAIN/plugins/$f" >> "$undo"
     else
         printf 'DELETE\t%s\n' "$MAIN/plugins/$f" >> "$undo"
     fi
-    cp -P -p "$jar" "$MAIN/plugins/$f"
+    place "$jar" "$MAIN/plugins/$f"
     log "入れました: plugins/$f"
 done
 
@@ -66,6 +77,7 @@ while IFS= read -r -d '' rel; do
     rel=${rel#./}
     safe_name "$rel" || { log "名前が不正なので飛ばします: $rel"; continue; }
     target="$MAIN/$rel"
+    safe_target "$target" || { log "main/ の外を指しているので飛ばします: $rel"; continue; }
     if [ -e "$target" ]; then
         mkdir -p "$dest/backup/main/$(dirname "$rel")"
         cp -P -p "$target" "$dest/backup/main/$rel"
@@ -74,7 +86,7 @@ while IFS= read -r -d '' rel; do
         printf 'DELETE\t%s\n' "$target" >> "$undo"
     fi
     mkdir -p "$(dirname "$target")"
-    cp -P -p "$STAGE_DIR/main/$rel" "$target"
+    place "$STAGE_DIR/main/$rel" "$target"
     log "入れました: $rel"
 done < <(cd "$STAGE_DIR/main" && find . -type f -print0)
 
@@ -82,21 +94,27 @@ cat > "$dest/rollback.sh" << 'EOF'
 #!/bin/bash
 # 入れたものを元に戻す。toro-main を止めてから実行する
 set -euo pipefail
-undo="$(dirname "$0")/undo.list"
+here=$(cd "$(dirname "$0")" && pwd)
+undo="$here/undo.list"
 if [ ! -f "$undo" ]; then
     echo "undo.list が見つかりません"
     exit 1
 fi
+# main/ はコンテナが書ける。入れた後にリンクへ差し替えられていても、main/ の外には書かない
+main_real=$(realpath -e -- "$here/../../main")
+inside_main() { case "$(realpath -m -- "$(dirname -- "$1")")/" in "$main_real"/*) return 0 ;; *) return 1 ;; esac; }
 tac "$undo" | while IFS=$'\t' read -r action src dst || [ -n "$action" ]; do
     case "$action" in
         RESTORE)
             if [ -n "$src" ] && [ -n "$dst" ] && [ -e "$src" ]; then
+                if ! inside_main "$dst"; then echo "main/ の外を指しているので飛ばします: $dst"; continue; fi
                 mkdir -p "$(dirname "$dst")"
-                cp -P -p "$src" "$dst"
+                cp -P -p -T --remove-destination "$src" "$dst"
             fi
             ;;
         DELETE)
             if [ -n "$src" ] && [ -e "$src" ]; then
+                if ! inside_main "$src"; then echo "main/ の外を指しているので飛ばします: $src"; continue; fi
                 rm -f "$src"
             fi
             ;;

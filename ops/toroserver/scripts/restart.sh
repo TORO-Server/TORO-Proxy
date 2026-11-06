@@ -6,7 +6,7 @@ set -uo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-cd "$PROJECT_DIR"
+cd "$PROJECT_DIR" || exit 1
 source "$SCRIPT_DIR/lib.sh"
 
 log "再起動を始めます"

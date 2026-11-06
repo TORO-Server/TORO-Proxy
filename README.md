@@ -53,7 +53,7 @@ gradle shadowJar
 GitHub Actions が、試験に通った JAR を `ghcr.io/toro-server/toro-proxy` に置きます。中身は `/TORO-Proxy.jar` だけで、動かすものではありません。
 タグは、`latest` (main の先頭)、`sha-<短い ID>`、リリース (`v1.2.3` のタグを打つと `1.2.3` と `1.2`) です。
 
-サーバーの `update_velocity.sh` が、`PROXY_TAG` の版を取り出して `velocity/plugins/TORO-Proxy.jar` に入れます (ほかのプラグインと同じく、誰もいなくなってから)。上げるときは、タグを打って CI が終わってから、`PROXY_TAG` を書き換えます。
+サーバーの `update_velocity.sh` が、`PROXY_TAG` の版を取り出して `velocity/plugins/TORO-Proxy.jar` に入れます (ほかのプラグインと同じく、誰もいなくなってから)。上げるときは、タグを打って CI が終わってから、`PROXY_TAG` を PR で書き換えます。
 
 イメージは非公開なので、`update_velocity.sh` を動かすユーザー (prod-host の cron) で、先に `read:packages` だけの PAT で入っておきます。
 
@@ -67,7 +67,9 @@ echo "<read:packages だけの PAT>" | docker login ghcr.io -u <GitHub のユー
 | --- | --- | --- |
 | `both-service/docker-compose.yaml` | `/home/service-user/` | Velocity に limbo (PicoLimbo) を足したもの。limbo のポートは公開しません。 |
 | `both-service/limbo/server.toml` | `/home/service-user/limbo/` | limbo の設定 (BungeeGuard)。トークンは `limbo.env` から渡します（`velocity/forwarding.secret` と同じ値。権限 640）。 |
-| `both-service/update_velocity.sh` | `/home/service-user/` | 毎朝 05:25 に `reboot.sh` から呼ばれます。Geyser・Floodgate・Via・TORO-Proxy (GHCR のイメージから)・Velocity のイメージを別の場所に取ってきます。変わったものがあれば、誰もいなくなってから Velocity を作り直します。最大 6 時間待ち、それでも人がいればその日は見送ります。 |
+| `both-service/update_velocity.sh` | `/home/service-user/` | 毎朝 05:25 に `reboot.sh` から呼ばれます。`plugins.lock.json` で固定した Geyser・Floodgate・Via・TORO-Proxy (GHCR のイメージから)・Velocity のイメージを別の場所に取ってきます。変わったものがあれば、誰もいなくなってから Velocity を作り直します。最大 6 時間待ち、それでも人がいればその日は見送ります。 |
+| `both-service/plugins.lock.json` | 同上 | Geyser・Floodgate・ViaVersion・ViaBackwards の版、取る URL、SHA-256 です。 |
+| `both-service/fetch_plugins.py` | 同上 | `plugins.lock.json` の JAR を取り、SHA-256 が違うものは使いません。 |
 | `toroserver/scripts/daily_backup.sh` | `/home/server-user/scripts/` | 毎朝 05:29 の処理です。動いているうちに一度ミラーリングしてから止めるので、止まる時間が短くなります。人がいれば 60 秒前に知らせ、`staged/` を入れてから起動を確かめます。 |
 | `toroserver/scripts/restart.sh` | 同上 | 手で行う計画再起動です。止めるのは toro-main だけで、TiDB・地図・Tunnel は止めません。 |
 | `toroserver/scripts/apply_staged.sh` | 同上 | `staged/` の JAR や設定を `main/` に入れます。元の版は `staged-applied/<時刻>/` に残します。 |
@@ -78,7 +80,7 @@ echo "<read:packages だけの PAT>" | docker login ghcr.io -u <GitHub のユー
 
 - **プラグインや設定 (toro-main)**: `/home/server-user/staged/` に置きます。次の朝の再起動か、`./scripts/restart.sh` で入ります。プレイヤーは limbo で待つだけで、切断されません。
 - **Paper 本体**: `docker-compose.yaml` のイメージのタグを変えてから `./scripts/restart.sh` を実行します。
-- **Velocity のプラグイン**: Geyser・Floodgate・Via は毎朝自動で取ってきて、誰もいないときに入れます。それ以外のプラグインは `velocity/plugins/` に置き、誰もいないときに `docker restart toro-velocity` を実行します。
+- **Velocity のプラグイン**: Geyser・Floodgate・Via は `plugins.lock.json` で版と SHA-256 を固定しています。週に 1 度 `plugin-pins` ワークフローが新しいリリースを調べて PR を作ります (急ぐときは手動で実行します。Bedrock の新しい版に Geyser を合わせるときなど)。公開ハッシュと比べるのは `.github/scripts/plugin_pins.py` です。マージしたら `plugins.lock.json` を `/home/service-user/` に写すと、次の朝に取ってきて、誰もいないときに入れます。それ以外のプラグインは `velocity/plugins/` に置き、誰もいないときに `docker restart toro-velocity` を実行します。
 - **limbo**: `ghcr.io/quozul/picolimbo` のタグを固定しています。新しい Minecraft のクライアントは Velocity の ViaVersion が変換するため、急いで上げる必要はありません。
 
 ## 確かめたこと (2026-10-29、ローカル)

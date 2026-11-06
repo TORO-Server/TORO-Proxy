@@ -1,19 +1,17 @@
 name: compose
 
-# ops/both-service/docker-compose.yaml を変えたら、構文とイメージの決まり (.github/scripts/check-images.py) を確かめる
+# ops/ を変えたら、compose の構文とイメージの決まり (.github/scripts/check-images.py)、スクリプトの試験を確かめる
 on:
   push:
     branches: [main]
     paths:
-      - 'ops/both-service/docker-compose.yaml'
-      - 'ops/both-service/update_velocity.sh'
-      - '.github/scripts/check-images.py'
+      - 'ops/**'
+      - '.github/scripts/**'
       - '.github/workflows/compose.yml'
   pull_request:
     paths:
-      - 'ops/both-service/docker-compose.yaml'
-      - 'ops/both-service/update_velocity.sh'
-      - '.github/scripts/check-images.py'
+      - 'ops/**'
+      - '.github/scripts/**'
       - '.github/workflows/compose.yml'
 
 permissions:
@@ -28,6 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: スクリプトの構文と試験
+        run: |
+          # SC2034: lib.sh の変数は、source した側が使う
+          shellcheck -S warning -e SC2034 -x ops/both-service/*.sh ops/toroserver/scripts/*.sh .github/scripts/*.sh
+          bash .github/scripts/test-ops.sh
+          python3 .github/scripts/test_fetch_plugins.py
 
       - name: イメージの決まり
         run: python3 .github/scripts/check-images.py ops/both-service/docker-compose.yaml

@@ -1,0 +1,69 @@
+name: plugin-pins
+
+# Velocity のプラグインの固定 (ops/both-service/plugins.lock.json) の確かめと更新。
+# プルリクエストでは、固定した版を配布元の公開ハッシュと比べる。週に 1 度 (と手動で) 新しいリリースを調べて PR を作る。
+# GITHUB_TOKEN で作った PR では他のワークフローが動かないが、update が同じ比べ方をしている
+on:
+  schedule:
+    - cron: '23 19 * * 2'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ops/both-service/plugins.lock.json'
+      - '.github/scripts/plugin_pins.py'
+      - '.github/workflows/plugin-pins.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-pins-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: 固定した版を確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/plugin_pins.py check
+
+  update:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: 新しいリリースを調べる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/plugin_pins.py update
+
+      - name: PR を作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: chore/plugin-pins
+          LOCK: ops/both-service/plugins.lock.json
+        run: |
+          if git diff --quiet -- "$LOCK"; then
+            echo "新しいリリースはありません"
+            exit 0
+          fi
+          git switch -C "$BRANCH"
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'chore(ops): Velocity のプラグインの固定を上げる' -- "$LOCK"
+          git push --force origin "$BRANCH"
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --head "$BRANCH" --title 'chore(ops): Velocity のプラグインの固定を上げる' \
+              --body 'plugins.lock.json を配布元の最新のリリースに上げます。取ったものは配布元の公開ハッシュと一致しました。マージしたら plugins.lock.json を /home/service-user/ に写します。'
+          fi
