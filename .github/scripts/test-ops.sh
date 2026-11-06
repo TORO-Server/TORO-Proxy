@@ -25,6 +25,7 @@ check "online_players が lib.sh と update_velocity.sh で同じ" "$(fn "$LIB")
 check "online.txt を読むスクリプトは 2 つだけ" 2 "$(grep -rl --include='*.sh' 'online\.txt' "$ROOT/ops" | wc -l | tr -d ' ')"
 
 PROJECT_DIR=$WORK/project-online
+export TORO_VELOCITY_DIR=$WORK/velocity
 # shellcheck source=/dev/null
 source "$LIB"
 ONLINE_FILE=$WORK/online.txt

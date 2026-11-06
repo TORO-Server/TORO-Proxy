@@ -5,3 +5,6 @@ build/
 *.iml
 localtest/
 dist/
+
+# 本番の設定 (実値はリポジトリに置かない)
+ops.env

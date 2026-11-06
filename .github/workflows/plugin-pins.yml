@@ -65,5 +65,5 @@ jobs:
           git push --force origin "$BRANCH"
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr create --head "$BRANCH" --title 'chore(ops): Velocity のプラグインの固定を上げる' \
-              --body 'plugins.lock.json を配布元の最新のリリースに上げます。取ったものは配布元の公開ハッシュと一致しました。マージしたら plugins.lock.json を /home/service-user/ に写します。'
+              --body 'plugins.lock.json を配布元の最新のリリースに上げます。取ったものは配布元の公開ハッシュと一致しました。マージしたら plugins.lock.json を本番の配置先に写します。'
           fi

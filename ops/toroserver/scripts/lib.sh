@@ -2,7 +2,14 @@
 # scripts/*.sh から source する共通の関数。PROJECT_DIR を決めてから読む
 
 # TORO-Proxy (Velocity のプラグイン) が 10 秒ごとに「人数 時刻」を書く。統合版の人も数える
-ONLINE_FILE=/home/service-user/velocity/plugins/toro-proxy/online.txt
+# Velocity の配置先はリポジトリに書かず、環境変数 TORO_VELOCITY_DIR で渡す。
+# 未設定なら PROJECT_DIR の ops.env (git 管理外) も読む。それでも無ければ止まる
+if [ -z "${TORO_VELOCITY_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "$PROJECT_DIR/ops.env" ]; then
+    # shellcheck disable=SC1091
+    . "$PROJECT_DIR/ops.env"
+fi
+: "${TORO_VELOCITY_DIR:?TORO_VELOCITY_DIR が未設定です。環境変数か ops.env で指定してください (ops/toroserver/ops.env.example 参照)}"
+ONLINE_FILE="$TORO_VELOCITY_DIR/plugins/toro-proxy/online.txt"
 MC_CMD="$PROJECT_DIR/.agents/skills/toroserver-admin/scripts/mc_cmd.py"
 STAGE_DIR="$PROJECT_DIR/staged"
 APPLIED_DIR="$PROJECT_DIR/staged-applied"
