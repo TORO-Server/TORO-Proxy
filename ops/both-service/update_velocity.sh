@@ -5,19 +5,22 @@
 cd "$(dirname "$0")" || exit 1
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-ONLINE_FILE=./velocity/plugins/toro-proxy/online.txt
 PLUGINS=./velocity/plugins
 # Velocity のイメージは docker-compose.yaml のタグ (固定) に従う。上げるときは compose のタグを PR で上げる
 IMAGE=$(docker compose config --images | grep '/docker-minecraft-velocity:')
 WAIT_MINUTES=${WAIT_MINUTES:-360}
 
-# プロキシにいる人数。分からないとき (ファイルが無い・1 分以上古い・中身が数でない) は -1
-# このファイルは Velocity のコンテナが書けるので、中身を信じない。bash の算術は変数の中身も式として評価するので、数だと確かめてから使う
+# TORO-Proxy のステータスエンドポイント (HTTP) で人数を聞く。統合版の人も数える
+# 応答が無い・壊れているときは分からないので -1 を返す
+STATUS_URL=${TORO_STATUS_URL:-http://127.0.0.1:18089/status}
 online_players() {
-    local n t
-    if [ ! -f "$ONLINE_FILE" ] || [ -L "$ONLINE_FILE" ] || ! read -r n t < "$ONLINE_FILE"; then echo -1; return; fi
-    if ! [[ "$n" =~ ^[0-9]{1,6}$ && "$t" =~ ^[0-9]{1,12}$ ]]; then echo -1; return; fi
-    if [ $(( $(date +%s) - 10#$t )) -le 60 ]; then echo "$n"; else echo -1; fi
+    local out n
+    out=$(curl -fsS --max-time 5 "$STATUS_URL" 2>/dev/null) || { echo -1; return; }
+    n=$(printf '%s' "$out" | jq -r 'if (.online | type) == "number" then .online else empty end' 2>/dev/null)
+    case "$n" in
+        ''|*[!0-9]*) echo -1 ;;
+        *) echo "$n" ;;
+    esac
 }
 
 if ! ping -w 10 8.8.8.8 &> /dev/null; then log "インターネットに接続できません"; exit 1; fi
@@ -34,7 +37,7 @@ python3 fetch_plugins.py plugins.lock.json "$UPD/velocity/plugins" "$PLUGINS" \
 # 入れた版は proxy-plugin.tag に覚え、同じ版のあいだは取りに行かない (手で入れた TORO-Proxy-<版>.jar があれば、その版も入っているとみなす)。
 # イメージを取るには、このスクリプトを動かすユーザーで `docker login ghcr.io` を済ませておく (read:packages だけの PAT)
 PROXY_IMAGE=ghcr.io/toro-server/toro-proxy
-PROXY_TAG=1.4.6
+PROXY_TAG=1.5.0
 if [ "$(cat ./proxy-plugin.tag 2> /dev/null)" != "$PROXY_TAG" ] && [ ! -e "$PLUGINS/TORO-Proxy-$PROXY_TAG.jar" ]; then
     cid=$(docker create "$PROXY_IMAGE:$PROXY_TAG" /TORO-Proxy.jar 2> /dev/null)
     if [ -n "$cid" ] && docker cp "$cid:/TORO-Proxy.jar" "$UPD/velocity/plugins/TORO-Proxy.jar" > /dev/null 2>&1; then

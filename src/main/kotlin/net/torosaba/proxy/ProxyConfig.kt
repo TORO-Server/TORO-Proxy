@@ -21,6 +21,10 @@ data class ProxyConfig(
     val clientsEndpoint: String,
     val clientsToken: String,
     val clientsIntervalSeconds: Long,
+    val statusEnabled: Boolean,
+    val statusBind: String,
+    val statusPort: Int,
+    val onlineFileEnabled: Boolean,
 ) {
     fun moved(): Component = Component.text(movedMessage, NamedTextColor.YELLOW)
     fun returning(): Component = Component.text(returningMessage, NamedTextColor.GREEN)
@@ -51,6 +55,14 @@ clients-endpoint=http://toro-map-web:3000/live/clients
 clients-token=
 # 定期同期間隔 (秒)。人の出入りがあったときは即座にイベント駆動で送信するため、通常は 0 (無効) で十分。万一のためのフェイルセーフ同期を行いたい場合のみ秒数を指定
 clients-interval-seconds=0
+# サーバー側のスクリプトが人数を聞くためのステータスエンドポイント (HTTP)。返すのは人数と時刻のみ
+status-enabled=true
+# ステータスエンドポイントの待ち受けアドレス。コンテナ内では全アドレスで待ち受け、ホスト外への公開は compose 側で制限する
+status-bind=0.0.0.0
+# ステータスエンドポイントの待ち受けポート
+status-port=18089
+# online.txt へ人数を書き続けるか。ステータスエンドポイントへの移行が終わるまでは有効にする
+online-file-enabled=true
 """
 
         fun load(dir: Path): ProxyConfig {
@@ -66,6 +78,11 @@ clients-interval-seconds=0
             fun str(key: String) = props.getProperty(key)?.trim().orEmpty()
             fun list(key: String) = str(key).split('|').map { it.trim() }.filter { it.isNotEmpty() }
             fun long(key: String, min: Long) = (str(key).toLongOrNull() ?: min).coerceAtLeast(min)
+            fun bool(key: String, default: Boolean) = when (str(key).lowercase()) {
+                "true" -> true
+                "false" -> false
+                else -> default
+            }
             val mains = list("main-servers")
             require(mains.isNotEmpty()) { "main-servers が空です" }
             return ProxyConfig(
@@ -82,6 +99,10 @@ clients-interval-seconds=0
                 clientsEndpoint = str("clients-endpoint"),
                 clientsToken = str("clients-token"),
                 clientsIntervalSeconds = long("clients-interval-seconds", 0),
+                statusEnabled = bool("status-enabled", true),
+                statusBind = str("status-bind").ifEmpty { "0.0.0.0" },
+                statusPort = (str("status-port").toIntOrNull() ?: 18089).coerceIn(1, 65535),
+                onlineFileEnabled = bool("online-file-enabled", true),
             )
         }
     }

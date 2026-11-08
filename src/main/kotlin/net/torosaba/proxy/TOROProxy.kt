@@ -4,6 +4,7 @@ import com.google.inject.Inject
 import com.velocitypowered.api.command.SimpleCommand
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.text.Component
@@ -21,11 +22,19 @@ class TOROProxy @Inject constructor(
     private val logger: Logger,
     @param:DataDirectory private val dataDir: Path,
 ) {
+    private var statusServer: StatusServer? = null
+
     @Subscribe
     fun onInitialize(event: ProxyInitializeEvent) {
         val config = ProxyConfig.load(dataDir)
         // サーバー側のスクリプトが「誰もいないときに再起動する」判断に使う。統合版 (Geyser) の人は TCP の接続数に出ないため
-        proxy.scheduler.buildTask(this, Runnable { writeOnline() }).repeat(10, TimeUnit.SECONDS).schedule()
+        if (config.onlineFileEnabled) {
+            proxy.scheduler.buildTask(this, Runnable { writeOnline() }).repeat(10, TimeUnit.SECONDS).schedule()
+        }
+        if (config.statusEnabled) {
+            statusServer = StatusServer(logger, config.statusBind, config.statusPort) { proxy.playerCount }
+                .also { it.start() }
+        }
         if (config.clientsEndpoint.isNotEmpty() && config.clientsToken.isNotEmpty()) {
             val reporter = ClientReporter(proxy, logger, config, this)
             proxy.eventManager.register(this, reporter)
@@ -72,6 +81,12 @@ class TOROProxy @Inject constructor(
             .repeat(config.checkIntervalSeconds, TimeUnit.SECONDS)
             .schedule()
         logger.info("{} の再起動中は {} で待たせます", config.mainServers, config.limboServer)
+    }
+
+    @Subscribe
+    fun onShutdown(event: ProxyShutdownEvent) {
+        statusServer?.stop()
+        statusServer = null
     }
 
     /** plugins/toro-proxy/online.txt に「人数 書いた時刻(エポック秒)」を書く */
