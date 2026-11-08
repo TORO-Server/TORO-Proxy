@@ -70,7 +70,7 @@ echo "<read:packages だけの PAT>" | docker login ghcr.io -u <GitHub のユー
 | `both-service/update_velocity.sh` | 同上 | 毎朝 05:25 に `reboot.sh` から呼ばれます。`plugins.lock.json` で固定した Geyser・Floodgate・Via・TORO-Proxy (GHCR のイメージから)・Velocity のイメージを別の場所に取ってきます。変わったものがあれば、誰もいなくなってから Velocity を作り直します。最大 6 時間待ち、それでも人がいればその日は見送ります。 |
 | `both-service/plugins.lock.json` | 同上 | Geyser・Floodgate・ViaVersion・ViaBackwards の版、取る URL、SHA-256 です。 |
 | `both-service/fetch_plugins.py` | 同上 | `plugins.lock.json` の JAR を取り、SHA-256 が違うものは使いません。 |
-| `toroserver/scripts/daily_backup.sh` | サーバー側プロジェクトの `scripts/` | 毎朝 05:29 の処理です。動いているうちに一度ミラーリングしてから止めるので、止まる時間が短くなります。人がいれば 60 秒前に知らせ、`staged/` を入れてから起動を確かめます。 |
+| `toroserver/scripts/daily_backup.sh` | サーバー側プロジェクトの `scripts/` | 毎朝の処理です。動いているうちに一度ミラーリングしてから止めるので、止まる時間が短くなります。人がいれば 60 秒前に知らせ、`staged/` を入れてから起動を確かめます。 |
 | `toroserver/scripts/restart.sh` | 同上 | 手で行う計画再起動です。止めるのは toro-main だけで、TiDB・地図・Tunnel は止めません。 |
 | `toroserver/scripts/apply_staged.sh` | 同上 | `staged/` の JAR や設定を `main/` に入れます。元の版は `staged-applied/<時刻>/` に残します。 |
 | `toroserver/scripts/lib.sh` | 同上 | 共通の関数です。人数の取得、ゲーム内への告知、起動の確認、起動しないときの自動の巻き戻しを持ちます。 |
