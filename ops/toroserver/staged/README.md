@@ -3,7 +3,7 @@
 ここに置いたものは、toro-main が止まっているあいだに `scripts/apply_staged.sh` が `main/` に入れます。
 次のどちらかの再起動で入ります。
 
-- 毎朝 05:29 の `scripts/daily_backup.sh`。
+- 毎朝の `scripts/daily_backup.sh`。
 - 手で実行する `./scripts/restart.sh [秒]`。人がいれば知らせてから止めます。既定は 60 秒前です。
 
 再起動のあいだ、プレイヤーは Velocity の limbo で待ちます。起動したら TORO-Proxy が自動で元のサーバーに戻します。
