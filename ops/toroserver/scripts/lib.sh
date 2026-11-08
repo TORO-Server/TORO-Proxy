@@ -1,7 +1,7 @@
 #!/bin/bash
 # scripts/*.sh から source する共通の関数。PROJECT_DIR を決めてから読む
 
-# TORO-Proxy (Velocity のプラグイン) が 10 秒ごとに「人数 時刻」を書く。統合版の人も数える
+# TORO-Proxy (Velocity のプラグイン) に人数を聞く。統合版の人も数える
 # Velocity の配置先はリポジトリに書かず、環境変数 TORO_VELOCITY_DIR で渡す。
 # 未設定なら PROJECT_DIR の ops.env (git 管理外) も読む。それでも無ければ止まる
 if [ -z "${TORO_VELOCITY_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "$PROJECT_DIR/ops.env" ]; then
@@ -9,20 +9,23 @@ if [ -z "${TORO_VELOCITY_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "$PROJEC
     . "$PROJECT_DIR/ops.env"
 fi
 : "${TORO_VELOCITY_DIR:?TORO_VELOCITY_DIR が未設定です。環境変数か ops.env で指定してください (ops/toroserver/ops.env.example 参照)}"
-ONLINE_FILE="$TORO_VELOCITY_DIR/plugins/toro-proxy/online.txt"
 MC_CMD="$PROJECT_DIR/.agents/skills/toroserver-admin/scripts/mc_cmd.py"
 STAGE_DIR="$PROJECT_DIR/staged"
 APPLIED_DIR="$PROJECT_DIR/staged-applied"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# プロキシにいる人数。分からないとき (ファイルが無い・1 分以上古い・中身が数でない) は -1
-# このファイルは Velocity のコンテナが書けるので、中身を信じない。bash の算術は変数の中身も式として評価するので、数だと確かめてから使う
+# TORO-Proxy のステータスエンドポイント (HTTP) で人数を聞く。統合版の人も数える
+# 応答が無い・壊れているときは分からないので -1 を返す
+STATUS_URL=${TORO_STATUS_URL:-http://127.0.0.1:18089/status}
 online_players() {
-    local n t
-    if [ ! -f "$ONLINE_FILE" ] || [ -L "$ONLINE_FILE" ] || ! read -r n t < "$ONLINE_FILE"; then echo -1; return; fi
-    if ! [[ "$n" =~ ^[0-9]{1,6}$ && "$t" =~ ^[0-9]{1,12}$ ]]; then echo -1; return; fi
-    if [ $(( $(date +%s) - 10#$t )) -le 60 ]; then echo "$n"; else echo -1; fi
+    local out n
+    out=$(curl -fsS --max-time 5 "$STATUS_URL" 2>/dev/null) || { echo -1; return; }
+    n=$(printf '%s' "$out" | jq -r 'if (.online | type) == "number" then .online else empty end' 2>/dev/null)
+    case "$n" in
+        ''|*[!0-9]*) echo -1 ;;
+        *) echo "$n" ;;
+    esac
 }
 
 mc_cmd() { python3 "$MC_CMD" "$1" toro-main > /dev/null; }

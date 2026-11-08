@@ -7,7 +7,7 @@ LIB=$ROOT/ops/toroserver/scripts/lib.sh
 APPLY=$ROOT/ops/toroserver/scripts/apply_staged.sh
 UPDATE=$ROOT/ops/both-service/update_velocity.sh
 WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+trap 'kill ${STUB_PID:-} 2> /dev/null; rm -rf "$WORK"' EXIT
 
 fails=0
 check() {
@@ -22,44 +22,57 @@ check() {
 # --- online_players ---
 fn() { sed -n '/^online_players() {$/,/^}$/p' "$1"; }
 check "online_players が lib.sh と update_velocity.sh で同じ" "$(fn "$LIB")" "$(fn "$UPDATE")"
-check "online.txt を読むスクリプトは 2 つだけ" 2 "$(grep -rl --include='*.sh' 'online\.txt' "$ROOT/ops" | wc -l | tr -d ' ')"
+check "ステータスを問い合わせるスクリプトは 2 つだけ" 2 "$(grep -rl --include='*.sh' 'TORO_STATUS_URL' "$ROOT/ops" | wc -l | tr -d ' ')"
 
 PROJECT_DIR=$WORK/project-online
 export TORO_VELOCITY_DIR=$WORK/velocity
+
+# TORO_STATUS_URL を向ける先の軽い HTTP スタブ。応答の中身はファイルで差し替える
+STUB_BODY=$WORK/stub_body.json
+cat > "$WORK/stub.py" << 'EOF'
+import http.server, pathlib, sys
+body_file = pathlib.Path(sys.argv[2])
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            data = body_file.read_bytes()
+        except OSError:
+            data = b"{}"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+    def log_message(self, *args):
+        pass
+http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), Handler).serve_forever()
+EOF
+free_port() { python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'; }
+STUB_PORT=$(free_port)
+DEAD_PORT=$(free_port)
+export TORO_STATUS_URL="http://127.0.0.1:$STUB_PORT/status"
+printf '%s' '{"online":3,"epoch":1794155059}' > "$STUB_BODY"
+python3 "$WORK/stub.py" "$STUB_PORT" "$STUB_BODY" &
+STUB_PID=$!
+for _ in $(seq 1 50); do
+    curl -fsS --max-time 2 "$TORO_STATUS_URL" > /dev/null 2>&1 && break
+    sleep 0.1
+done
+
 # shellcheck source=/dev/null
 source "$LIB"
-ONLINE_FILE=$WORK/online.txt
-now=$(date +%s)
-write_online() { rm -rf "$ONLINE_FILE"; printf '%s\n' "$1" > "$ONLINE_FILE"; }
 
-write_online "3 $now"; check "人数と時刻" 3 "$(online_players)"
-write_online "0 $now"; check "0 人" 0 "$(online_players)"
-write_online "3 $((now - 3600))"; check "古い" -1 "$(online_players)"
-write_online "abc $now"; check "人数が数でない" -1 "$(online_players)"
-write_online "3 abc"; check "時刻が数でない" -1 "$(online_players)"
-write_online "3 12x"; check "時刻に文字が混ざる" -1 "$(online_players)"
-write_online "-3 $now"; check "人数が負" -1 "$(online_players)"
-write_online "3 -$now"; check "時刻が負" -1 "$(online_players)"
-write_online "3"; check "時刻が無い" -1 "$(online_players)"
-write_online ""; check "空" -1 "$(online_players)"
-rm -rf "$ONLINE_FILE"; check "ファイルが無い" -1 "$(online_players)"
-mkdir "$ONLINE_FILE"; check "ディレクトリ" -1 "$(online_players)"
-rm -rf "$ONLINE_FILE"
+set_status() { printf '%s' "$1" > "$STUB_BODY"; }
 
-if ln -s "$WORK/target.txt" "$ONLINE_FILE" 2> /dev/null && [ -L "$ONLINE_FILE" ]; then
-    printf '3 %s\n' "$now" > "$WORK/target.txt"
-    check "シンボリックリンク" -1 "$(online_players)"
-    rm -f "$ONLINE_FILE"
-else
-    echo "skip シンボリックリンク (この環境では作れない)"
-fi
-
-if mkfifo "$ONLINE_FILE" 2> /dev/null && [ -p "$ONLINE_FILE" ]; then
-    check "FIFO" -1 "$(timeout 5 bash -c "$(fn "$LIB"); ONLINE_FILE='$ONLINE_FILE'; online_players")"
-    rm -f "$ONLINE_FILE"
-else
-    echo "skip FIFO (この環境では作れない)"
-fi
+set_status '{"online":3,"epoch":1794155059}'; check "正常な JSON で人数" 3 "$(online_players)"
+set_status '{"online":0,"epoch":1794155059}'; check "0 人" 0 "$(online_players)"
+set_status '{"epoch":1794155059}'; check "online が無い" -1 "$(online_players)"
+set_status '{"online":"3","epoch":1794155059}'; check "online が数でない" -1 "$(online_players)"
+set_status '{"online":-3,"epoch":1794155059}'; check "人数が負" -1 "$(online_players)"
+set_status 'not json'; check "JSON でない" -1 "$(online_players)"
+set_status ''; check "空の応答" -1 "$(online_players)"
+STATUS_URL="http://127.0.0.1:$DEAD_PORT/status"; check "接続できない" -1 "$(online_players)"
+STATUS_URL=$TORO_STATUS_URL
 
 # --- PROXY_TAG ---
 PROXY_TAG_VALUE=$(grep -oE '^PROXY_TAG=[0-9.]+' "$UPDATE" | cut -d= -f2)
@@ -151,12 +164,11 @@ both() {
     mkdir -p "$1/velocity"
     cp "$UPDATE" "$1/"
 }
-online_zero() { printf '0 %s\n' "$(date +%s)" > "$1/toro-proxy/online.txt"; }
+set_status '{"online":0,"epoch":1794155059}'
 
 BOTH=$WORK/both
 both "$BOTH"
 mkdir -p "$BOTH/velocity/plugins/toro-proxy"
-online_zero "$BOTH/velocity/plugins"
 printf 'old\n' > "$BOTH/velocity/plugins/Floodgate-velocity.jar"
 printf 'victim\n' > "$OUTSIDE/via.jar"
 if ln -s "$OUTSIDE/via.jar" "$BOTH/velocity/plugins/ViaVersion.jar" 2> /dev/null && [ ! -L "$BOTH/velocity/plugins/ViaVersion.jar" ]; then
@@ -178,7 +190,6 @@ if [ "$has_links" = 1 ]; then
     both "$BOTH2"
     mkdir -p "$OUTSIDE/plugins/toro-proxy"
     ln -s "$OUTSIDE/plugins" "$BOTH2/velocity/plugins"
-    online_zero "$BOTH2/velocity/plugins"
     bash "$BOTH2/update_velocity.sh" > "$WORK/update2.log" 2>&1
     check "plugins がリンクなら止まる" 1 "$?"
     check "plugins がリンクなら外に書かない" no "$([ -e "$OUTSIDE/plugins/ViaVersion.jar" ] && echo yes || echo no)"
