@@ -14,15 +14,15 @@
     "sha256": "649835022de37ff09255fc626d4bfe7bc2a3b926d07b0dfaf1f51e12bf37001d"
   },
   "ViaVersion.jar": {
-    "source": "github:ViaVersion/ViaVersion",
-    "version": "5.12.2",
-    "url": "https://github.com/ViaVersion/ViaVersion/releases/download/5.12.2/ViaVersion-5.12.2.jar",
-    "sha256": "24e4876fefe73e08a4c87cd6c457ee0916e62dd69656631caf41e26f909d504b"
+    "source": "manual",
+    "version": "5.12.3-SNAPSHOT",
+    "sha256": "9b3fd14e7ec26f5d11b86dc65c777196a7f212c812752ce041a19aecf722505c",
+    "note": "公式 CI のスナップショット (2026-11-09 の本番実測で固定)。安定版は 5.12.2 までで、Paper 26.3 対応のためスナップショットを使う。jar 内にコミットやビルド番号の記録は無い。出所棚卸し 2026-11-09 で manual 化"
   },
   "ViaBackwards.jar": {
-    "source": "github:ViaVersion/ViaBackwards",
-    "version": "5.12.2",
-    "url": "https://github.com/ViaVersion/ViaBackwards/releases/download/5.12.2/ViaBackwards-5.12.2.jar",
-    "sha256": "9a148a80ea22074f4bd1626cdbe254a4cd998bf44e7ceaff4e285a1b6b35da42"
+    "source": "manual",
+    "version": "5.12.3-SNAPSHOT",
+    "sha256": "fa9a1c081fbbe779aa6a10aa3d2edcdcc4c7d649e1b9051703b175c4b54aa1ed",
+    "note": "公式 CI のスナップショット (2026-11-09 の本番実測で固定)。ViaVersion と同じ理由で manual"
   }
 }

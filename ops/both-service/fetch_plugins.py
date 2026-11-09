@@ -8,6 +8,9 @@
   - 1 つでも取れなければ終了コード 1 (取れたものは置き場所に残る)
 
 版を上げるときは plugins.lock.json を PR で変える (.github/scripts/plugin_pins.py)。
+
+source が manual のエントリは自動で取らない。今の JAR が固定したハッシュと一致すれば
+よしとし、一致しなければ失敗する (違うものを勝手に置かないため)。
 """
 import hashlib
 import http.client
@@ -64,7 +67,16 @@ def fetch(name, pin, dest, current):
     """取れた、または取らなくてよければ True"""
     url = pin.get("url", "") if isinstance(pin, dict) else ""
     want = pin.get("sha256", "") if isinstance(pin, dict) else ""
-    if not NAME.match(name) or not SHA256.match(want) or not url.startswith("https://"):
+    if not NAME.match(name) or not SHA256.match(want):
+        print(f"{name}: plugins.lock.json の書き方が正しくありません")
+        return False
+    if isinstance(pin, dict) and pin.get("source") == "manual":
+        if current_sha256(os.path.join(current, name)) == want:
+            print(f"{name}: manual 固定の JAR と一致しています")
+            return True
+        print(f"{name}: manual 固定のため自動では取りません。固定した sha256 の JAR を配置してください")
+        return False
+    if not url.startswith("https://"):
         print(f"{name}: plugins.lock.json の書き方が正しくありません")
         return False
     if current_sha256(os.path.join(current, name)) == want:
