@@ -17,12 +17,12 @@
     "source": "manual",
     "version": "5.12.3-SNAPSHOT",
     "sha256": "9b3fd14e7ec26f5d11b86dc65c777196a7f212c812752ce041a19aecf722505c",
-    "note": "公式 CI のスナップショット (2026-11-09 の本番実測で固定)。安定版は 5.12.2 までで、Paper 26.3 対応のためスナップショットを使う。jar 内にコミットやビルド番号の記録は無い。出所棚卸し 2026-11-09 で manual 化"
+    "note": "公式 CI (ci.viaversion.com) job ViaVersion ビルド #1492 (2026-11-07) の成果物 ViaVersion-5.12.3-SNAPSHOT.jar と sha256 一致で特定 (2026-11-09)。本番へは getVia.py が lastSuccessfulBuild を取得し 2026-11-09 06:38 に適用 (reboot.log に取得ハッシュの記録あり)。安定版は 5.12.2 までで、Paper 26.3 対応のためスナップショットを使う"
   },
   "ViaBackwards.jar": {
     "source": "manual",
     "version": "5.12.3-SNAPSHOT",
     "sha256": "fa9a1c081fbbe779aa6a10aa3d2edcdcc4c7d649e1b9051703b175c4b54aa1ed",
-    "note": "公式 CI のスナップショット (2026-11-09 の本番実測で固定)。ViaVersion と同じ理由で manual"
+    "note": "公式 CI (ci.viaversion.com) job ViaBackwards ビルド #816 (2026-11-06) の成果物 ViaBackwards-5.12.3-SNAPSHOT.jar と sha256 一致で特定 (2026-11-09)。ViaVersion と同じ経路で同日に適用"
   }
 }
