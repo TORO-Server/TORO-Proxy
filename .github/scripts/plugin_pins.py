@@ -7,6 +7,10 @@
 
 公開ハッシュは、Geyser と Floodgate がビルドの API の downloads、ViaVersion と ViaBackwards が
 GitHub Releases のアセットの digest です。環境変数 GH_TOKEN があれば GitHub API の回数制限に使います。
+
+source が manual のエントリは、配布元に固定できる公開ハッシュが無いもの (CI スナップショット等) で、
+lock には実測した sha256 だけを持つ。check では対象外 (SKIP) とし、update ではそのまま保持する。
+配置時の照合は ops/both-service/fetch_plugins.py が行い、一致しない場合は自動で取り直さず失敗する。
 """
 import hashlib
 import json
@@ -85,6 +89,10 @@ def published(pin, latest=False):
 
 
 def validated(pin):
+    if pin["source"] == "manual":
+        if not SHA256.match(pin["sha256"]):
+            raise ValueError(f"{pin['source']}: 配布元の値の形が想定と違います")
+        return pin
     if not VERSION.match(pin["version"]) or not SHA256.match(pin["sha256"]) or not pin["url"].startswith("https://"):
         raise ValueError(f"{pin['source']}: 配布元の値の形が想定と違います")
     return pin
@@ -93,6 +101,10 @@ def validated(pin):
 def check(lock):
     bad = 0
     for name, pin in lock.items():
+        if pin["source"] == "manual":
+            validated(pin)
+            print(f"SKIP {name}: manual ({pin['version']})、照合は配置時に fetch_plugins.py が行います")
+            continue
         up = validated(published(pin))
         got = downloaded_sha256(pin["url"])
         if pin != up or got != pin["sha256"]:
@@ -106,6 +118,9 @@ def check(lock):
 def update(lock):
     new = {}
     for name, pin in lock.items():
+        if pin["source"] == "manual":
+            new[name] = pin
+            continue
         latest = validated(published(pin, latest=True))
         if latest != pin:
             got = downloaded_sha256(latest["url"])
