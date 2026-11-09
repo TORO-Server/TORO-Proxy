@@ -84,6 +84,19 @@ class FetchTest(unittest.TestCase):
             self.assertFalse(self.run_fetch(name=name, pin=pin), name)
         self.assertEqual(self.names(), [])
 
+    def test_manual_matches_current_without_download(self):
+        (self.current / "p.jar").write_bytes(BODY)
+        pin = {"source": "manual", "version": "1.0-SNAPSHOT", "sha256": GOOD}
+        opener = mock.Mock(side_effect=AssertionError("取りに行ってはいけない"))
+        self.assertTrue(self.run_fetch(pin=pin, opener=opener))
+        self.assertEqual(self.names(), [])
+
+    def test_manual_rejects_mismatch(self):
+        (self.current / "p.jar").write_bytes(b"other")
+        pin = {"source": "manual", "version": "1.0-SNAPSHOT", "sha256": GOOD}
+        self.assertFalse(self.run_fetch(pin=pin))
+        self.assertEqual(self.names(), [])
+
     def test_lock_file_is_well_formed(self):
         lock_path = SCRIPT.with_name("plugins.lock.json")
         lock = json.loads(lock_path.read_text(encoding="utf-8"))
@@ -91,8 +104,11 @@ class FetchTest(unittest.TestCase):
         for name, pin in lock.items():
             self.assertRegex(name, fetch_plugins.NAME)
             self.assertRegex(pin["sha256"], fetch_plugins.SHA256)
-            self.assertTrue(pin["url"].startswith("https://"))
-            self.assertRegex(pin["version"], r"^[0-9]+(\.[0-9]+)+$")
+            if pin.get("source") == "manual":
+                self.assertTrue(pin["version"])
+            else:
+                self.assertTrue(pin["url"].startswith("https://"))
+                self.assertRegex(pin["version"], r"^[0-9]+(\.[0-9]+)+$")
 
 
 if __name__ == "__main__":
