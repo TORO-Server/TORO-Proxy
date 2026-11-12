@@ -50,8 +50,8 @@ ping-timeout-seconds=3
 message-moved=サーバーを再起動しています。起動したら自動で戻ります。
 message-returning=サーバーが起動しました。戻ります。
 # いまつながっているプレイヤーの IP を知らせる先 (assets.torosaba.net が MarumaSign の Mod の読み込みかを確かめるのに使う)。空なら知らせない
-clients-endpoint=http://toro-map-web:3000/live/clients
-# 知らせる先の合言葉 (toro-map-web の NUXT_CLIENTS_TOKEN と同じもの)。空なら知らせない
+clients-endpoint=http://toro-webmap:3000/live/clients
+# 知らせる先の合言葉 (toro-webmap の NUXT_CLIENTS_TOKEN と同じもの)。空なら知らせない
 clients-token=
 # 定期同期間隔 (秒)。人の出入りがあったときは即座にイベント駆動で送信するため、通常は 0 (無効) で十分。万一のためのフェイルセーフ同期を行いたい場合のみ秒数を指定
 clients-interval-seconds=0

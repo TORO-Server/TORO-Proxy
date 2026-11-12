@@ -18,8 +18,8 @@ TORO サーバーを、プレイヤーを切断せずに更新するための仕
 - **戻すときに断られた場合**: limbo にいる間に BAN された場合などです。3 回断られたら、その理由を表示して切断します。
 - **limbo の隠蔽**: 待機用の `limbo` は、Velocity 組み込みの `/server` コマンドの一覧やタブ補完から完全に除外されます。また、手動で `/server limbo` やパケット等で接続しようとしても拒絶されます。
 - **プロキシの人数**: `plugins/toro-proxy/online.txt` に 10 秒ごとに「人数 時刻」を書きます。統合版の人も数えます。サーバー側のスクリプトは、これを見て誰もいないときだけ Velocity を再起動します。
-- **つながっている人の IP**: 人の出入りがあったとき（イベント駆動）に、全員の接続元の IP を `toro-map-web` (`clients-endpoint`、合言葉は `clients-token`) に送ります。直前と IP リストに変化がない場合は無駄な通信を行いません。
-  assets.torosaba.net (MarumaSign の看板の写し) は、これで「いま遊んでいる人の Mod からの読み込みか」を確かめます。どう確かめるか (ログアウト後の猶予など) は toro-map-web が決めるので、変えても Velocity や Paper の再起動はいりません。
+- **つながっている人の IP**: 人の出入りがあったとき（イベント駆動）に、全員の接続元の IP を `toro-webmap` (`clients-endpoint`、合言葉は `clients-token`) に送ります。直前と IP リストに変化がない場合は無駄な通信を行いません。
+  assets.torosaba.net (MarumaSign の看板の写し) は、これで「いま遊んでいる人の Mod からの読み込みか」を確かめます。どう確かめるか (ログアウト後の猶予など) は toro-webmap が決めるので、変えても Velocity や Paper の再起動はいりません。
   入口の Velocity が見ている接続元なので、Paper の再起動中に limbo で待っている人も含みます。
 - **ドメイン別 Ping レスポンス (ServerListPlus 完全移行)**: `mc.marumasa.dev` 等のバーチャルホストごとのサーバーリスト（MOTD、アイコン、バージョン表示、プレイヤー数・ホバー表示）を制御します。ServerListPlus を不要にし、`plugins/toro-proxy/ping.yml` でホストごとのルールを一元管理します。
   - `mc.marumasa.dev` からの接続時は、表示バージョンを「1.0.0から99.99.99」（プロトコル -1 で赤文字表示）、アイコンを 3.0式サーバーのアイコンにします。

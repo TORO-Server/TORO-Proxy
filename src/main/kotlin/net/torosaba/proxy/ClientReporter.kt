@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * いまつながっているプレイヤーの IP を toro-map-web に知らせる (assets.torosaba.net が、MarumaSign の Mod の読み込みかを確かめるのに使う)。
+ * いまつながっているプレイヤーの IP を toro-webmap に知らせる (assets.torosaba.net が、MarumaSign の Mod の読み込みかを確かめるのに使う)。
  * 入口の Velocity が見ている接続元なので、Paper の再起動中に limbo で待っている人も含む。
  * 人の出入りがあったとき (イベント駆動) に差分を検知して送信する。接続内容に変化がない場合は無駄な送信を行わない。
  * IP は内部のネットワークで送るだけで、ここではログにも残さない。
