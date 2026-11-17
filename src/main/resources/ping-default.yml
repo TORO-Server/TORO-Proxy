@@ -120,20 +120,6 @@ hosts:
       - "doro.png"
       - "toto.png"
 
-  milk.nuresen.be:
-    description:
-      - |-
-        &bMilkyway MC &e>&5> &3JE 1.20.4
-        &a[Beta Test] &eみる鯖へいらっしゃい！
-    version:
-      name: "1.12.2-26.3"
-      protocol: "client"
-    favicon:
-      - "mmcicon.png"
-    players:
-      hover:
-        - "&b%online%/ %max%"
-
   minuma.torosaba.net:
     description:
       - |-
