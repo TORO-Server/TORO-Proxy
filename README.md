@@ -4,7 +4,7 @@ TORO サーバーを、プレイヤーを切断せずに更新するための仕
 
 ゲームサーバーが再起動しているあいだ、プレイヤーは待機用の小さなサーバー (limbo) で待ち、起動したら自動で元のサーバーに戻ります。
 
-サーバー固有の値 (配置先のパスなど) はこのリポジトリに書かず、環境変数か、git に入れない設定ファイルで渡します ([ops/toroserver/ops.env.example](ops/toroserver/ops.env.example))。
+サーバー固有の値 (配置先のパスなど) はこの置き場に書かず、環境変数か、git に入れない設定ファイルで渡します ([ops/toroserver/ops.env.example](ops/toroserver/ops.env.example))。
 
 ## ビルド
 
