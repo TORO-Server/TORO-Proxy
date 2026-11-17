@@ -9,6 +9,9 @@ PLUGINS=./velocity/plugins
 # Velocity のイメージは docker-compose.yaml のタグ (固定) に従う。上げるときは compose のタグを PR で上げる
 IMAGE=$(docker compose config --images | grep '/docker-minecraft-velocity:')
 WAIT_MINUTES=${WAIT_MINUTES:-360}
+# Velocity のコンテナ名 (docker-compose.yaml の container_name と同じ値)。未設定なら止まる
+: "${VELOCITY_CONTAINER:?VELOCITY_CONTAINER が未設定です (Velocity のコンテナ名を環境変数で指定してください)}"
+export VELOCITY_CONTAINER
 
 # TORO-Proxy のステータスエンドポイント (HTTP) で人数を聞く。統合版の人も数える
 # 応答が無い・壊れているときは分からないので -1 を返す
@@ -57,7 +60,7 @@ for jar in "$UPD"/velocity/plugins/*.jar; do
 done
 
 docker compose pull -q
-running=$(docker inspect -f '{{.Image}}' toro-velocity 2> /dev/null)
+running=$(docker inspect -f '{{.Image}}' "$VELOCITY_CONTAINER" 2> /dev/null)
 latest=$(docker image inspect -f '{{.Id}}' "$IMAGE" 2> /dev/null)
 [ -n "$running" ] && [ "$running" != "$latest" ] && changed+=("image")
 
@@ -103,5 +106,5 @@ for name in "${changed[@]}"; do
         log "入れられませんでした: $name"
     fi
 done
-docker compose up -d --force-recreate toro-velocity
+docker compose up -d --force-recreate velocity
 log "Velocity を作り直しました"

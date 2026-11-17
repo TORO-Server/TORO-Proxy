@@ -1,4 +1,4 @@
-# PicoLimbo (toro-limbo)。toro-main の再起動中にプレイヤーが待つ場所。Velocity からしか繋がらない
+# PicoLimbo (toro-limbo)。ゲームサーバーの再起動中にプレイヤーが待つ場所。Velocity からしか繋がらない
 bind = "0.0.0.0:25565"
 welcome_message = ""
 action_bar = "<yellow>サーバーを再起動しています。起動したら自動で戻ります。</yellow>"

@@ -44,4 +44,5 @@ jobs:
         run: |
           # 秘密の env ファイルは git に入れないので、空のものを置く
           touch limbo.env
-          docker compose config -q
+          # コンテナ名は環境変数で渡す決まりなので、検証用の値を入れる
+          VELOCITY_CONTAINER=velocity-check docker compose config -q
