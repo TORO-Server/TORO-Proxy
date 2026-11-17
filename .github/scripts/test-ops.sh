@@ -62,6 +62,7 @@ for _ in $(seq 1 50); do
 done
 
 # コンテナ名の環境変数が無ければ、lib.sh と update_velocity.sh は止まる
+# shellcheck source=/dev/null
 (unset MC_CONTAINER; PROJECT_DIR=$WORK/none; source "$LIB" > /dev/null 2>&1); check "MC_CONTAINER が無ければ lib.sh が止まる" 1 "$?"
 (unset VELOCITY_CONTAINER; bash "$UPDATE" > /dev/null 2>&1); check "VELOCITY_CONTAINER が無ければ update_velocity.sh が止まる" 1 "$?"
 
