@@ -17,4 +17,3 @@ gradle shadowJar
 ## 関連文書
 
 - 動きの詳しい説明 (再起動とみなすもの、人数の記録、ホストごとの表示の設定): [docs/design.md](docs/design.md)
-- 毎朝の更新、手で行う再起動、`staged/` の使い方などの運用手順: [ServerImage-TORO の docs/RUNBOOK.md](https://github.com/TORO-Server/ServerImage-TORO/blob/main/docs/RUNBOOK.md)
