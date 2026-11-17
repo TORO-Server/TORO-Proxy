@@ -26,6 +26,8 @@ check "ステータスを問い合わせるスクリプトは 2 つだけ" 2 "$(
 
 PROJECT_DIR=$WORK/project-online
 export TORO_VELOCITY_DIR=$WORK/velocity
+export MC_CONTAINER=test-game
+export VELOCITY_CONTAINER=test-velocity
 
 # TORO_STATUS_URL を向ける先の軽い HTTP スタブ。応答の中身はファイルで差し替える
 STUB_BODY=$WORK/stub_body.json
@@ -58,6 +60,11 @@ for _ in $(seq 1 50); do
     curl -fsS --max-time 2 "$TORO_STATUS_URL" > /dev/null 2>&1 && break
     sleep 0.1
 done
+
+# コンテナ名の環境変数が無ければ、lib.sh と update_velocity.sh は止まる
+# shellcheck source=/dev/null
+(unset MC_CONTAINER; PROJECT_DIR=$WORK/none; source "$LIB" > /dev/null 2>&1); check "MC_CONTAINER が無ければ lib.sh が止まる" 1 "$?"
+(unset VELOCITY_CONTAINER; bash "$UPDATE" > /dev/null 2>&1); check "VELOCITY_CONTAINER が無ければ update_velocity.sh が止まる" 1 "$?"
 
 # shellcheck source=/dev/null
 source "$LIB"
@@ -181,7 +188,7 @@ check "TORO-Proxy を入れた" proxy "$(cat "$BOTH/velocity/plugins/TORO-Proxy.
 check "リンクの先を書き換えない (update_velocity)" victim "$(cat "$OUTSIDE/via.jar")"
 check "リンク自身を置き換える (update_velocity)" no "$([ -L "$BOTH/velocity/plugins/ViaVersion.jar" ] && echo yes || echo no)"
 check "TORO-Proxy を PROXY_TAG の版で取る" 1 "$(grep -cE "^ghcr\\.io/toro-server/toro-proxy:${PROXY_TAG_VALUE}$" "$DOCKER_LOG")"
-check "Velocity を作り直す" 1 "$(grep -c 'toro-velocity' "$DOCKER_LOG")"
+check "Velocity を作り直す" 1 "$(grep -c 'force-recreate velocity' "$DOCKER_LOG")"
 
 if [ "$has_links" = 1 ]; then
     # plugins がリンクで外を指しているときは、何も入れない
@@ -193,7 +200,7 @@ if [ "$has_links" = 1 ]; then
     bash "$BOTH2/update_velocity.sh" > "$WORK/update2.log" 2>&1
     check "plugins がリンクなら止まる" 1 "$?"
     check "plugins がリンクなら外に書かない" no "$([ -e "$OUTSIDE/plugins/ViaVersion.jar" ] && echo yes || echo no)"
-    check "plugins がリンクなら作り直さない" 0 "$(grep -c 'toro-velocity' "$DOCKER_LOG")"
+    check "plugins がリンクなら作り直さない" 0 "$(grep -c 'force-recreate velocity' "$DOCKER_LOG")"
 fi
 
 if [ "$fails" -ne 0 ]; then

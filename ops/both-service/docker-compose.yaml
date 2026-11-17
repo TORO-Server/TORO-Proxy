@@ -18,10 +18,11 @@ x-locked: &locked
     - ALL
 
 services:
-  toro-velocity:
+  velocity:
     # タグで固定。上げるときはこのタグを PR で上げる (update_velocity.sh が、誰もいないときに作り直す)
     image: ghcr.io/toro-server/docker-minecraft-velocity:4.3.1
-    container_name: toro-velocity
+    # コンテナ名は環境変数 VELOCITY_CONTAINER で渡す (update_velocity.sh と同じ値)。未設定なら compose が止まる
+    container_name: ${VELOCITY_CONTAINER:?VELOCITY_CONTAINER が未設定です (Velocity のコンテナ名)}
     labels:
       # deploy.sh の対象外 (作り直すと全員が切れる)
       toro.deploy.protected: "true"
@@ -42,7 +43,7 @@ services:
     networks:
       - minecraft-network
 
-  # toro-main の再起動中にプレイヤーが待つ limbo (PicoLimbo)。ポートは公開せず、Velocity からだけ繋ぐ
+  # ゲームサーバーの再起動中にプレイヤーが待つ limbo (PicoLimbo)。ポートは公開せず、Velocity からだけ繋ぐ
   toro-limbo:
     image: ghcr.io/quozul/picolimbo:v1.15.0-mc26.3@sha256:f31b20040fd8a3103a97429cca0b4622aee6c7eec1543b220d09cd5aca22588d
     container_name: toro-limbo

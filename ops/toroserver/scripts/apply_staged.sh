@@ -1,5 +1,5 @@
 #!/bin/bash
-# staged/ に置いた変更を main/ に入れる。toro-main が止まっているときに、daily_backup.sh と restart.sh から呼ぶ
+# staged/ に置いた変更を main/ に入れる。ゲームサーバーが止まっているときに、daily_backup.sh と restart.sh から呼ぶ
 #   staged/plugins/*.jar        plugins/ に入れる (同じ名前のものは置き換える)
 #   staged/remove-plugins.txt   plugins/ から外す JAR の名前 (1 行に 1 つ。# 以降は無視)
 #   staged/main/...             main/ の同じ場所に写す (設定ファイルなど)
@@ -11,8 +11,8 @@ PROJECT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 source "$SCRIPT_DIR/lib.sh"
 MAIN="$PROJECT_DIR/main"
 
-if docker ps --format '{{.Names}}' | grep -qx toro-main; then
-    log "toro-main が動いているので staged は入れません"
+if docker ps --format '{{.Names}}' | grep -qx "$MC_CONTAINER"; then
+    log "ゲームサーバーが動いているので staged は入れません"
     exit 1
 fi
 
@@ -92,7 +92,7 @@ done < <(cd "$STAGE_DIR/main" && find . -type f -print0)
 
 cat > "$dest/rollback.sh" << 'EOF'
 #!/bin/bash
-# 入れたものを元に戻す。toro-main を止めてから実行する
+# 入れたものを元に戻す。ゲームサーバーを止めてから実行する
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 undo="$here/undo.list"
@@ -132,4 +132,4 @@ mkdir -p "$STAGE_DIR/plugins" "$STAGE_DIR/main"
 
 echo "$dest" > "$APPLIED_DIR/PENDING"
 echo "$dest" > "$APPLIED_DIR/LAST"
-log "staged を入れました。元に戻すには: toro-main を止めてから bash $dest/rollback.sh"
+log "staged を入れました。元に戻すには: ゲームサーバーを止めてから bash $dest/rollback.sh"

@@ -8,6 +8,7 @@ if [ -z "${TORO_VELOCITY_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "$PROJEC
     # shellcheck disable=SC1091
     . "$PROJECT_DIR/ops.env"
 fi
+: "${MC_CONTAINER:?MC_CONTAINER が未設定です (ゲームサーバーのコンテナ名。環境変数か ops.env で指定してください)}"
 : "${TORO_VELOCITY_DIR:?TORO_VELOCITY_DIR が未設定です。環境変数か ops.env で指定してください (ops/toroserver/ops.env.example 参照)}"
 MC_CMD="$PROJECT_DIR/.agents/skills/toroserver-admin/scripts/mc_cmd.py"
 STAGE_DIR="$PROJECT_DIR/staged"
@@ -28,7 +29,7 @@ online_players() {
     esac
 }
 
-mc_cmd() { python3 "$MC_CMD" "$1" toro-main > /dev/null; }
+mc_cmd() { python3 "$MC_CMD" "$1" "$MC_CONTAINER" > /dev/null; }
 
 announce() {
     local json
@@ -51,11 +52,11 @@ countdown() {
     sleep 10
 }
 
-# toro-main の起動が終わる (ログに Done が出る) まで待つ
+# ゲームサーバーの起動が終わる (ログに Done が出る) まで待つ
 wait_ready() {
     local since=$1 timeout=${2:-600} waited=0
     while [ "$waited" -lt "$timeout" ]; do
-        if docker logs --since "$since" toro-main 2>&1 | grep -aq 'Done ('; then return 0; fi
+        if docker logs --since "$since" "$MC_CONTAINER" 2>&1 | grep -aq 'Done ('; then return 0; fi
         sleep 5
         waited=$((waited + 5))
     done
@@ -68,18 +69,18 @@ start_and_check() {
     since=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
     docker compose up -d --remove-orphans
     if wait_ready "$since" 600; then
-        log "toro-main の起動を確認しました"
+        log "ゲームサーバーの起動を確認しました"
         rm -f "$APPLIED_DIR/PENDING"
         return 0
     fi
     if [ ! -f "$APPLIED_DIR/PENDING" ]; then
-        log "toro-main が 10 分たっても起動しません (今回 staged から入れたものはありません)"
+        log "ゲームサーバーが 10 分たっても起動しません (今回 staged から入れたものはありません)"
         return 1
     fi
     local dest
     dest=$(cat "$APPLIED_DIR/PENDING")
-    log "toro-main が 10 分たっても起動しないので、今回入れたもの ($dest) を元に戻します"
-    docker compose stop toro-main
+    log "ゲームサーバーが 10 分たっても起動しないので、今回入れたもの ($dest) を元に戻します"
+    docker stop "$MC_CONTAINER"
     bash "$dest/rollback.sh"
     rm -f "$APPLIED_DIR/PENDING"
     since=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
