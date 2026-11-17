@@ -8,3 +8,7 @@ dist/
 
 # 本番の設定 (実値はリポジトリに置かない)
 ops.env
+
+# Python のバイトコード
+__pycache__/
+*.pyc
