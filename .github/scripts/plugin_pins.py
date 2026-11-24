@@ -128,7 +128,7 @@ def update(lock):
                 raise ValueError(f"{name}: 取ったものが公開ハッシュと違います ({got})")
             print(f"{name}: {pin['version']} -> {latest['version']}")
         new[name] = latest
-    LOCK.write_text(json.dumps(new, indent=2) + "\n", encoding="utf-8", newline="\n")
+    LOCK.write_text(json.dumps(new, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     return 0
 
 
